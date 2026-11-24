@@ -102,10 +102,11 @@ export function toast(msg) {
 
 /* ---------- parallax del héroe ---------- */
 export function parallax(root) {
-  const art = $('.hero-art', root), txt = $('.hero-in', root); let raf = 0;
+  const art = $('.hero-art', root), txt = $('.hero-in', root), layers = $$('[data-depth]', root); let raf = 0;
   if (!art) return () => {};
   const fn = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; const y = Math.min(window.scrollY, 600);
     art.style.transform = 'translateY(' + (y * 0.28) + 'px) scale(' + (1 + y / 1800) + ')';
+    layers.forEach((l) => { l.style.transform = 'translateY(' + (y * +l.dataset.depth) + 'px)'; });
     if (txt && root.dataset.fade) txt.style.opacity = Math.max(0, 1 - y / 360); }); };
   window.addEventListener('scroll', fn, { passive: true });
   return () => window.removeEventListener('scroll', fn);

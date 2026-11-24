@@ -3,13 +3,23 @@ import * as store from './store.js';
 import * as api from './api.js';
 import * as data from './data.js';
 import { nextEpisode } from './progress.js';
-import { openRecap } from './sheet.js';
+import { openRecap, openSheet } from './sheet.js';
+import * as extras from './extras.js';
+import { resolveTheme, applyTheme } from './theme.js';
+import { mountScenes } from './scenes.js';
 import { esc, ic, artHTML, posterCard, ring, animate, normItem, fromMeta, hueOf, img, epLabel, fmtDate, parallax, toast, $, $$ } from './ui.js';
 
 export const tab = null;
 const q = encodeURIComponent;
 const BASED = { 'based on comic': 'Basada en un cómic', 'based on comic book': 'Basada en un cómic', 'based on graphic novel': 'Basada en una novela gráfica', 'based on novel or book': 'Basada en una novela o libro', 'based on novel': 'Basada en una novela', 'based on young adult novel': 'Basada en una novela juvenil', 'based on manga': 'Basada en un manga', 'based on video game': 'Basada en un videojuego', 'based on true story': 'Basada en hechos reales', 'based on tv series': 'Basada en una serie', 'based on cartoon': 'Basada en una caricatura', 'based on short story': 'Basada en un cuento', 'based on play or musical': 'Basada en una obra de teatro', 'based on anime': 'Basada en un anime' };
 
+function scenesOf(d) {
+  const bd = (d.images && d.images.backdrops) || [];
+  return bd.filter((b) => b.iso_639_1 == null && b.aspect_ratio > 1.7 && b.aspect_ratio < 1.85 && b.file_path !== d.backdrop_path)
+    .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
+    // las variantes de una misma imagen suelen quedar juntas en la lista: se toman escenas espaciadas
+    .filter((_, i, all) => all.length <= 8 || i % Math.min(4, Math.floor(all.length / 6)) === 1).slice(0, 6).map((b) => img(b.file_path, 'w780'));
+}
 const back = () => { if (history.length > 1) history.back(); else location.hash = '#/'; };
 const errHTML = (e) => '<div class="empty" style="padding-top:calc(var(--st) + 120px)"><b>' + (e.code === 'offline' ? 'Sin conexión' : e.code === 'badkey' ? 'La API key no funciona' : 'No pude cargar esto') + '</b>' +
   (e.code === 'offline' ? 'Este título no se guardó para verlo sin internet. Entrá cuando tengas conexión y tocá el ícono de descarga para guardarlo.' : e.code === 'badkey' ? 'Revisala en Ajustes.' : esc(e.message || '')) +
@@ -36,7 +46,11 @@ export async function mount(el, { type, id, query }) {
 
   let U; try { U = await data.load(); } catch (e) { U = { byKey: {}, byId: {} }; }
   store.remember(type, d);
-  const n = normItem(d, type), hue = data.hueFor(U, k, n.g, id), S = store.state();
+  const n = normItem(d, type), S = store.state();
+  const pal = null; // TMDB no permite leer los colores de sus imágenes: el tono sale del universo o del género
+  const T = resolveTheme(k, d, n.g, U, pal), hue = T.h;
+  const posterHero = !(n.backdrop && img(n.backdrop, 'w1280'));
+  let SC = [], stopScenes = () => {};
   el.style.setProperty('--h', hue); document.documentElement.style.setProperty('--h', hue);
   const title = n.title, orig = d.original_title || d.original_name || title, t0 = store.today();
 
@@ -57,12 +71,12 @@ export async function mount(el, { type, id, query }) {
   tabs.push(['uni', 'Universo']);
   const cast = isTv ? ((d.aggregate_credits && d.aggregate_credits.cast) || []) : ((d.credits && d.credits.cast) || []);
   if (cast.length) tabs.push(['cast', 'Reparto']);
-  tabs.push(['deb', 'Debate']);
+  tabs.push(['com', 'Comunidad']);
 
   /* ---------- HTML ---------- */
   const longT = title.length > 22 ? ' long' : '';
   const starBtns = [1, 2, 3, 4, 5].map((s) => '<button data-a="rate" data-n="' + s + '" class="' + ((S.rate[k] || 0) >= s ? 'on' : '') + '" aria-label="' + s + ' estrellas"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 3.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 17l-5.4 3 1.2-6-4.5-4.2 6.1-.7z"/></svg></button>').join('');
-  let html = '<div class="dhero"><div class="hero-art">' + artHTML(n) + '</div><div class="hero-blur"></div><div class="hero-shade"></div>' +
+  let html = '<div class="dhero' + (posterHero ? ' ph' : '') + '"><div class="hero-art">' + artHTML(n) + '</div><div class="hero-blur"></div><div class="hero-shade"></div>' +
     '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button>' +
     '<div class="toprt"><button class="gbtn" id="folbtn" data-a="follow" aria-label="Seguir">' + ic('mark', 20) + '</button><button class="gbtn" id="offbtn" data-a="off" aria-label="Guardar para ver sin conexión">' + ic('dl', 22) + '</button></div>' +
     '<div class="hero-in"><div class="kick">' + (U.byKey[k] ? 'Universo ' + esc(U.byId[U.byKey[k][0]].title) : isTv ? 'Serie' : 'Película') + '</div><h1 class="dtitle' + longT + '">' + esc(title) + '</h1>' +
@@ -72,13 +86,20 @@ export async function mount(el, { type, id, query }) {
     '<div class="tabs" id="tabs"><button class="gbtn mini" data-a="back" aria-label="Volver">' + ic('back', 20, 2) + '</button><div class="seg" role="tablist">' + tabs.map((t, i) => '<button role="tab" data-a="tab" data-p="' + t[0] + '" class="' + (i === 0 ? 'on' : '') + '">' + t[1] + '</button>').join('') + '</div></div>';
   tabs.forEach(([p], i) => { html += '<div class="pane" data-pane="' + p + '"' + (i ? ' hidden' : '') + '>' + pane(p) + '</div>'; });
   el.innerHTML = html;
+  const stopTheme = applyTheme(el, T);
   animate(el);
+  Promise.resolve(scenesOf(d)).then((list) => {
+    if (!el.isConnected) return;
+    SC = list; stopScenes = mountScenes(list, img(d.backdrop_path || d.poster_path, 'w780'));
+    $$('.season .sh', el).forEach((sh, i) => { if (!SC.length) return; sh.classList.add('has-ban'); sh.style.setProperty('--sb', 'url(' + SC[i % SC.length] + ')'); });
+    if (comLoaded && $('.gal', el) == null) { comLoaded = false; loadCommunity(); }
+  }).catch(() => {});
 
   /* ---------- paneles ---------- */
   function pane(p) {
     if (p === 'eps') {
       let o = '<div class="seasons">' + regular.map((s) => '<button data-a="season" data-s="' + s.season_number + '" class="' + (s.season_number === curSeason ? 'on' : '') + '">T' + s.season_number + '</button>').join('') + (specials ? '<button data-a="season" data-s="0">Especiales</button>' : '') + '</div>';
-      seasonsAll.forEach((s) => { o += '<div class="season" data-s="' + s.season_number + '"' + (s.season_number === curSeason ? '' : ' hidden') + '><div class="sh"><h3>' + (s.season_number === 0 ? 'Especiales' : 'Temporada ' + s.season_number) + '</h3><span class="sc" data-sc></span></div><div class="bar"><i></i></div>' + (s.season_number > 0 ? '<div style="text-align:right"><button class="linkbtn" data-a="seasonall" data-s="' + s.season_number + '">Marcar temporada</button></div>' : '') + '<ul class="eps"><li class="skel"><i></i><i></i></li></ul></div>'; });
+      seasonsAll.forEach((s) => { o += '<div class="season" data-s="' + s.season_number + '"' + (s.season_number === curSeason ? '' : ' hidden') + '><div class="sh"><h3>' + (s.season_number === 0 ? 'Especiales' : 'Temporada ' + s.season_number) + '</h3><span class="sc" data-sc></span></div><div class="bar" style="--n:' + s.episode_count + '"><i></i></div>' + (s.season_number > 0 ? '<div style="text-align:right"><button class="linkbtn" data-a="seasonall" data-s="' + s.season_number + '">Marcar temporada</button></div>' : '') + '<ul class="eps"><li class="skel"><i></i><i></i></li></ul></div>'; });
       return o;
     }
     if (p === 'uni') return uniPane();
@@ -89,7 +110,7 @@ export async function mount(el, { type, id, query }) {
         '<div class="cast">' + people.map((c) => { const role = isTv ? (c.roles && c.roles[0] && c.roles[0].character) : c.character; const ini = c.name.split(' ').slice(0, 2).map((w) => w[0]).join('');
           return '<div class="pers"><div class="av">' + ini + (c.profile_path ? '<img src="' + img(c.profile_path, 'w185') + '" alt="" loading="lazy" onload="this.classList.add(\'ld\')" onerror="this.remove()">' : '') + '</div><b>' + esc(c.name) + '</b><span>' + esc(role || '') + '</span></div>'; }).join('') + '</div>';
     }
-    return debPane();
+    return '<div id="com-root"><div class="skel"><i></i><i></i><i></i></div></div>';
   }
 
   function uniPane() {
@@ -112,30 +133,43 @@ export async function mount(el, { type, id, query }) {
     return o;
   }
 
-  function debPane() {
+  function starSvg() { return '<svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 17l-5.4 3 1.2-6-4.5-4.2 6.1-.7z"/></svg>'; }
+  let X = null;
+  function communityHTML(X0) {
+    X = X0;
+    const watched = isTv ? store.isDone(k) : store.isMovieWatched(k);
+    const gate = (inner, what) => watched ? inner : '<div class="gate"><div class="gated">' + inner + '</div><div class="cover"><b>Puede contar la historia</b><span>' + what + '</span><button class="btn glass small" data-a="reveal">Mostrar igual</button></div></div>';
+    let o = '';
+    const shots = [d.backdrop_path && img(d.backdrop_path, 'w780'), ...SC].filter(Boolean);
+    if (shots.length > 1) o += '<section class="csec"><h3 class="ch">Escenas <small>' + shots.length + ' imágenes</small></h3><div class="gal">' + shots.map((u, i) => '<button data-a="shot" data-i="' + i + '" aria-label="Ver escena ' + (i + 1) + '"><img src="' + u + '" alt="" loading="lazy"></button>').join('') + '</div></section>';
+    if (X.trailer) o += '<section class="csec"><h3 class="ch">Tráiler</h3><button class="vid" data-a="play" data-k="' + esc(X.trailer.key) + '" aria-label="Reproducir tráiler">' + (d.backdrop_path ? '<img src="' + img(d.backdrop_path, 'w780') + '" alt="">' : '') + '<span class="pl"><span class="pb">' + ic('play', 26) + '</span></span><span class="vt">' + esc(X.trailer.name) + '</span></button></section>';
+    if (X.reviews && X.reviews.length) {
+      const cards = X.reviews.map((r, i) => '<div class="rev"><div class="rh"><div class="rav">' + esc((r.a || '?')[0].toUpperCase()) + '</div><div><div class="rn">' + esc(r.a) + '</div><div class="rd">' + esc(fmtDate(r.d)) + '</div></div>' + (r.r != null ? '<div class="rr">' + starSvg() + r.r + '/10</div>' : '') + '</div><p>' + esc(r.tx) + '</p><button class="more" data-a="rev" data-i="' + i + '">Leer reseña completa</button></div>').join('');
+      o += '<section class="csec"><h3 class="ch">Lo que dice la gente <small>reseñas de usuarios de TMDB</small></h3>' + gate('<div class="revs">' + cards + '</div>', 'Las reseñas pueden mencionar giros y finales.') + '</section>';
+    }
+    if (X.wiki) {
+      const w = X.wiki, items = (w.sections || []).map((sct) => '<div class="ai"><button data-a="acc" aria-expanded="false"><span>' + esc(sct.t) + (sct.lang !== w.lang ? '<span class="lang">en inglés</span>' : '') + '</span>' + ic('chev', 16) + '</button><div class="ab"><div><p>' + esc(sct.tx) + '</p></div></div></div>').join('');
+      o += '<section class="csec"><h3 class="ch">Sobre ' + (isTv ? 'la serie' : 'la película') + ' <small>Wikipedia</small></h3><p class="wsum">' + esc(w.summary) + '</p>' + (items ? gate('<div class="acc">' + items + '</div>', 'El argumento y la recepción cuentan lo que pasa.') : '') +
+        '<p class="credit">Texto de Wikipedia (' + esc(w.lang === 'es' ? 'español' : 'inglés') + '), bajo licencia CC BY-SA 4.0.</p></section>';
+    }
     const kw = isTv ? ((d.keywords && d.keywords.results) || []) : ((d.keywords && d.keywords.keywords) || []);
     const based = kw.map((x) => x.name.toLowerCase()).filter((x) => x.indexOf('based on') === 0);
-    const imdb = d.external_ids && d.external_ids.imdb_id;
-    const links = [
-      ['Teorías en Reddit', 'Hilos que hablan de ' + orig, 'https://www.reddit.com/search/?q=' + q(orig + ' theories')],
-      ['Explicaciones en YouTube', 'Análisis y finales explicados', 'https://www.youtube.com/results?search_query=' + q(orig + ' explicado')],
-      ['Wikipedia', 'Argumento, personajes y producción', 'https://es.wikipedia.org/w/index.php?search=' + q(title)]
-    ];
-    if (imdb) links.push(['IMDb', 'Puntajes y reseñas', 'https://www.imdb.com/title/' + imdb + '/']);
-    if (!isTv) links.push(['Letterboxd', 'Reseñas de la comunidad', 'https://letterboxd.com/tmdb/' + id + '/']);
-    let o = '<div class="links">' + links.map((l) => '<a class="lk" href="' + l[2] + '" target="_blank" rel="noopener"><div>' + l[0] + '<span>' + l[1] + '</span></div>' + ic('ext', 18) + '</a>').join('') + '</div>';
-    if (based.length) {
-      o += '<div class="sub">Obra original</div><div class="chips" style="margin-bottom:12px">' + based.map((b) => '<span class="src">' + esc(BASED[b] || 'Basada en: ' + b.replace('based on ', '')) + '</span>').join('') + '</div><div class="links">' +
-        '<a class="lk" href="https://es.wikipedia.org/w/index.php?search=' + q(orig + ' adaptación obra original') + '" target="_blank" rel="noopener"><div>Buscar el original<span>Libro, cómic o juego en el que se basa</span></div>' + ic('ext', 18) + '</a></div>' +
-        '<p class="credit">Próximamente: comparativa con el original (qué cambió y qué no), con spoilers tapados hasta que llegues a ese punto.</p>';
-    }
+    if (based.length) o += '<section class="csec"><h3 class="ch">Obra original</h3><div class="chips">' + based.map((b) => '<span class="src">' + esc(BASED[b] || 'Basada en: ' + b.replace('based on ', '')) + '</span>').join('') + '</div><p class="credit">Próximamente: comparativa con el original (qué cambió y qué no), con spoilers tapados hasta que llegues a ese punto.</p></section>';
     const wp = d['watch/providers'] && d['watch/providers'].results && d['watch/providers'].results[S.region];
     if (wp) {
-      const grp = (label, arr) => arr && arr.length ? '<div class="sub">' + label + ' · ' + S.region + '</div><div class="provs">' + arr.map((p) => '<a class="prov" href="' + esc(wp.link) + '" target="_blank" rel="noopener" title="' + esc(p.provider_name) + '"><img src="' + img(p.logo_path, 'w92') + '" alt="' + esc(p.provider_name) + '" loading="lazy"></a>').join('') + '</div>' : '';
-      o += grp('Streaming', wp.flatrate) + grp('Alquiler', wp.rent) + grp('Compra', wp.buy) + '<p class="credit">Disponibilidad: JustWatch, vía TMDB.</p>';
+      const grp = (label, arr) => arr && arr.length ? '<div class="sub">' + label + ' · ' + S.region + '</div><div class="provs">' + arr.map((p) => '<div class="prov" title="' + esc(p.provider_name) + '"><img src="' + img(p.logo_path, 'w92') + '" alt="' + esc(p.provider_name) + '" loading="lazy"></div>').join('') + '</div>' : '';
+      const body = grp('Streaming', wp.flatrate) + grp('Alquiler', wp.rent) + grp('Compra', wp.buy);
+      if (body) o += '<section class="csec"><h3 class="ch">Dónde verla</h3>' + body + '<p class="credit">Disponibilidad: JustWatch, vía TMDB.</p></section>';
     }
-    if (kw.length) o += '<div class="sub">Temas</div><div class="chips">' + kw.slice(0, 10).map((x) => '<span>' + esc(x.name) + '</span>').join('') + '</div>';
-    return o;
+    if (kw.length) o += '<section class="csec"><h3 class="ch">Temas</h3><div class="chips">' + kw.slice(0, 10).map((x) => '<span>' + esc(x.name) + '</span>').join('') + '</div></section>';
+    return o || '<div class="note">' + ic('info', 18) + '<span>Todavía no hay contenido de la comunidad para este título.</span></div>';
+  }
+  let comLoaded = false;
+  async function loadCommunity() {
+    if (comLoaded) return; comLoaded = true;
+    const box = $('#com-root', el); if (!box) return;
+    try { const X0 = await extras.community(type, id, d); box.innerHTML = communityHTML(X0); animate(el); }
+    catch (e) { box.innerHTML = '<div class="note">' + ic('info', 18) + '<span>' + (e.code === 'offline' ? 'Sin conexión. La comunidad necesita internet.' : 'No pude cargar la comunidad.') + '</span></div>'; comLoaded = false; }
   }
 
   /* ---------- episodios ---------- */
@@ -143,8 +177,9 @@ export async function mount(el, { type, id, query }) {
   const rowHTML = (s, ep) => {
     const e = ep.episode_number, aired = ep.air_date && ep.air_date <= t0;
     const bits = [aired ? fmtDate(ep.air_date) : (ep.air_date ? 'Estreno ' + fmtDate(ep.air_date) : 'Sin fecha'), ep.runtime ? ep.runtime + ' min' : ''].filter(Boolean).join(' · ');
-    return '<li class="ep' + (aired ? '' : ' future') + '" data-s="' + s + '" data-e="' + e + '"><button class="ck" data-a="tog" aria-label="Marcar como visto">' + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 12.5l4.2 4.2L18.5 8"/></svg></button>' +
-      '<div class="et" data-a="exp"><div class="still">' + (ep.still_path ? '<img src="' + img(ep.still_path, 'w300') + '" alt="" loading="lazy" onload="this.classList.add(\'ld\')" onerror="this.remove()">' : '') + '</div><div class="tt"><span class="nxb">Siguiente</span>' + (s > 0 ? e + '. ' : '') + esc(ep.name || 'Episodio ' + e) + '<small>' + esc(bits) + '</small></div>' + ic('chev', 14) + '</div>' +
+    const em = T.epMeta ? T.epMeta(s, e) : null;
+    return '<li class="ep' + (aired ? '' : ' future') + (em && em[1] === 'bw' ? ' era-bw' : '') + '" data-s="' + s + '" data-e="' + e + '"><button class="ck" data-a="tog" aria-label="Marcar como visto">' + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 12.5l4.2 4.2L18.5 8"/></svg></button>' +
+      '<div class="et" data-a="exp"><div class="still">' + (ep.still_path ? '<img src="' + img(ep.still_path, 'w300') + '" alt="" loading="lazy" onload="this.classList.add(\'ld\')" onerror="this.remove()">' : '') + '</div><div class="tt"><span class="nxb">Siguiente</span>' + (s > 0 ? e + '. ' : '') + esc(ep.name || 'Episodio ' + e) + '<small>' + (em ? '<span class="era">' + esc(em[0]) + '</span>' : '') + esc(bits) + '</small></div>' + ic('chev', 14) + '</div>' +
       '<div class="es"><div>' + (ep.overview ? '<p class="sy" data-a="rv">' + esc(ep.overview) + '</p><span class="spl">Toca para ver igual (spoiler)</span>' : '<p class="nos">Sin sinopsis disponible.</p>') +
       '<div class="eacts">' + (aired && s > 0 ? '<button class="btn glass small" data-a="upto">Marcar hasta acá</button>' : '') + '<a class="btn glass small" href="https://www.reddit.com/search/?q=' + q(orig + ' S' + String(s).padStart(2, '0') + 'E' + String(e).padStart(2, '0')) + '" target="_blank" rel="noopener">Debate ' + ic('ext', 14) + '</a></div></div></div></li>';
   };
@@ -197,8 +232,10 @@ export async function mount(el, { type, id, query }) {
   function switchTab(p) {
     $$('.seg button', el).forEach((b) => b.classList.toggle('on', b.dataset.p === p));
     $$('.pane', el).forEach((pn) => { const show = pn.dataset.pane === p; pn.hidden = !show; pn.classList.toggle('show', show); });
+    if (p === 'com') loadCommunity();
     animate(el);
   }
+  if (query && query.tab) switchTab(query.tab);
   if (query && query.go === 'next' && isTv) setTimeout(focusNext, 400);
 
   /* ---------- guardar sin conexión ---------- */
@@ -206,6 +243,7 @@ export async function mount(el, { type, id, query }) {
     const urls = new Set([img(d.poster_path, 'w342'), img(d.backdrop_path, 'w1280'), img(d.backdrop_path, 'w780'), img(d.poster_path, 'w780')]);
     cast.slice(0, 18).forEach((c) => c.profile_path && urls.add(img(c.profile_path, 'w185')));
     ((d.recommendations && d.recommendations.results) || []).slice(0, 14).forEach((r) => r.poster_path && urls.add(img(r.poster_path, 'w342')));
+    scenesOf(d).forEach((u) => urls.add(u));
     toast('Guardando para ver sin conexión…');
     if (isTv) { for (const s of seasonsAll) { try { const sd = await api.season(id, s.season_number); (sd.episodes || []).forEach((ep) => ep.still_path && urls.add(img(ep.still_path, 'w300'))); } catch (e) { /* sigue */ } } }
     const list = [...urls].filter(Boolean); let i = 0, ok = 0;
@@ -229,6 +267,15 @@ export async function mount(el, { type, id, query }) {
       if (ne && !ne.upcoming) return focusNext(); return switchTab('eps');
     }
     if (act === 'exp') { a.closest('.ep').classList.toggle('open'); return; }
+    if (act === 'play') { const box = document.createElement('div'); box.className = 'vid playing real'; box.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(a.dataset.k) + '?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="Tráiler" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>'; a.replaceWith(box); return; }
+    if (act === 'shot') { const list = [d.backdrop_path && img(d.backdrop_path, 'w780'), ...SC].filter(Boolean); const u = list[+a.dataset.i]; if (u) openSheet('<div class="shotv"><img src="' + u + '" alt=""><button class="btn pri" style="width:100%;margin-top:14px" data-close>Cerrar</button></div>', hue); return; }
+    if (act === 'reveal') { a.closest('.gate').classList.add('open'); return; }
+    if (act === 'acc') { const it = a.closest('.ai'); it.classList.toggle('open'); a.setAttribute('aria-expanded', String(it.classList.contains('open'))); return; }
+    if (act === 'rev') {
+      const r = X && X.reviews[+a.dataset.i]; if (!r) return;
+      openSheet('<div class="rsheet"><h3>Reseña</h3><div class="who"><div class="rav">' + esc((r.a || '?')[0].toUpperCase()) + '</div><div><div class="rn" style="max-width:none">' + esc(r.a) + '</div><div class="rd">' + esc(fmtDate(r.d)) + (r.r != null ? ' · ' + r.r + '/10' : '') + '</div></div></div><div class="body">' + r.tx.split(/\n+/).map((p) => '<p>' + esc(p) + '</p>').join('') + '</div><p class="credit">Reseña de un usuario de TMDB. Puede incluir spoilers.</p><button class="btn pri" style="width:100%;margin-top:10px" data-close>Cerrar</button></div>', hue);
+      return;
+    }
     if (act === 'rv') { const li = a.closest('.ep'); if (!li.classList.contains('done') && !li.classList.contains('next')) li.classList.add('rev'); return; }
     const li = a.closest('.ep');
     if (act === 'tog' && li) {
@@ -249,5 +296,5 @@ export async function mount(el, { type, id, query }) {
   const onScroll = () => tabsEl.classList.toggle('stuck', tabsEl.getBoundingClientRect().top <= 1);
   window.addEventListener('scroll', onScroll, { passive: true });
   const stop = parallax(el);
-  return () => { window.removeEventListener('scroll', onScroll); stop(); };
+  return () => { window.removeEventListener('scroll', onScroll); stop(); stopTheme(); stopScenes(); };
 }

@@ -39,16 +39,18 @@ export async function validate(key) {
   return true;
 }
 
-const APPEND_TV = 'aggregate_credits,recommendations,external_ids,keywords,watch/providers,content_ratings';
-const APPEND_MOVIE = 'credits,recommendations,external_ids,keywords,watch/providers,release_dates';
+const APPEND_TV = 'aggregate_credits,recommendations,external_ids,keywords,watch/providers,content_ratings,images,videos';
+const APPEND_MOVIE = 'credits,recommendations,external_ids,keywords,watch/providers,release_dates,images,videos';
 
 async function withOverview(type, id, d) {
   if (d.overview) return d;
   try { const en = await call('/' + type + '/' + id, {}, 'en-US'); if (en.overview) { d.overview = en.overview; d._en = true; } } catch (e) { /* sin sinopsis */ }
   return d;
 }
-export async function tv(id) { return withOverview('tv', id, await call('/tv/' + id, { append_to_response: APPEND_TV })); }
-export async function movie(id) { return withOverview('movie', id, await call('/movie/' + id, { append_to_response: APPEND_MOVIE })); }
+const MEDIA = { include_image_language: 'null', include_video_language: 'es,en,null' };
+export async function tv(id) { return withOverview('tv', id, await call('/tv/' + id, { append_to_response: APPEND_TV, ...MEDIA })); }
+export async function movie(id) { return withOverview('movie', id, await call('/movie/' + id, { append_to_response: APPEND_MOVIE, ...MEDIA })); }
+export const reviews = (type, id) => call('/' + type + '/' + id + '/reviews', {}, 'en-US');
 export async function details(type, id) { return type === 'tv' ? tv(id) : movie(id); }
 
 export async function season(id, n) {

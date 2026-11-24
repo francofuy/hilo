@@ -22,9 +22,18 @@ La key **nunca** forma parte del repositorio.
 | `js/api.js` | TMDB (es-MX con sinopsis en inglés de respaldo) |
 | `js/progress.js` | "Siguiente capítulo" y "Anteriormente" |
 | `js/home.js`, `detail.js`, `universe.js`, `search.js`, `settings.js` | Pantallas |
+| `js/theme.js`, `fx.js`, `css/theme.css` | Temas por título: paleta, partículas y decoración propia (The Walking Dead, Loki, WandaVision, Iron Man y un tema por género para el resto) |
+| `js/scenes.js` | Fondo vivo con escenas del propio título |
+| `js/extras.js` | Comunidad adentro de la app: tráiler (YouTube), reseñas de TMDB y artículo de Wikipedia (vía Wikidata) |
 | `data/universes.json` | Universos curados (IDs de TMDB) |
 | `tools/build-universes.mjs` | Regenera `universes.json`: `TMDB_KEY=xxxx node tools/build-universes.mjs` |
 | `sw.js` | Service worker: app y datos guardados sin conexión |
+
+## Diseño de los efectos
+
+Regla: ningún efecto empieza o termina en un borde visible. Las capas a pantalla completa van fijas al viewport,
+lo que está en la portada entra por los costados o se funde con máscaras, y todo lo posible sigue el scroll.
+En Ajustes se pueden apagar o suavizar los efectos.
 
 ## Probar en local
 

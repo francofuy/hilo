@@ -1,7 +1,7 @@
 // Estado de Hilo: todo vive en el teléfono (localStorage). La API key también,
 // así el repositorio público nunca contiene secretos.
 const KEY = 'hilo:v1';
-const DEF = () => ({ v: 1, key: '', region: 'AR', follow: {}, watched: {}, last: {}, rate: {}, off: {}, meta: {} });
+const DEF = () => ({ v: 1, key: '', region: 'AR', follow: {}, watched: {}, last: {}, rate: {}, off: {}, meta: {}, fx: 'full' });
 
 let S;
 try { S = { ...DEF(), ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { S = DEF(); }
@@ -15,6 +15,7 @@ export const today = () => { const d = new Date(); return d.getFullYear() + '-' 
 /* ---------- ajustes ---------- */
 export function setKey(k) { S.key = k.trim(); save(); }
 export function setRegion(r) { S.region = r; save(); }
+export function setFx(v) { S.fx = v; save(); }
 
 /* ---------- metadatos mínimos (para dibujar el inicio sin red) ---------- */
 export function remember(type, d) {

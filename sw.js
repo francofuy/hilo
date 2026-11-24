@@ -1,8 +1,8 @@
 // Service worker de Hilo: la app abre sin conexión y lo que guardaste sigue disponible.
-const VERSION = 'hilo-v1';
+const VERSION = 'hilo-v2';
 const SHELL = VERSION + '-shell', API = VERSION + '-api', IMGS = VERSION + '-img', FONTS = VERSION + '-fonts';
-const PRECACHE = ['./', 'index.html', 'css/app.css', 'manifest.webmanifest', 'data/universes.json',
-  'js/app.js', 'js/api.js', 'js/data.js', 'js/detail.js', 'js/home.js', 'js/progress.js', 'js/search.js', 'js/settings.js', 'js/sheet.js', 'js/store.js', 'js/ui.js', 'js/universe.js',
+const PRECACHE = ['./', 'index.html', 'css/app.css', 'css/theme.css', 'manifest.webmanifest', 'data/universes.json',
+  'js/app.js', 'js/api.js', 'js/data.js', 'js/detail.js', 'js/extras.js', 'js/fx.js', 'js/home.js', 'js/progress.js', 'js/search.js', 'js/settings.js', 'js/sheet.js', 'js/scenes.js', 'js/store.js', 'js/theme.js', 'js/ui.js', 'js/universe.js',
   'icons/icon-192.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
@@ -58,7 +58,7 @@ self.addEventListener('fetch', (e) => {
         throw err;
       }
     })());
-  } else if (url.hostname === 'api.themoviedb.org') {
+  } else if (url.hostname === 'api.themoviedb.org' || url.hostname.endsWith('wikipedia.org') || url.hostname === 'www.wikidata.org') {
     e.respondWith(netFirst(req, API, 3500));
   } else if (url.hostname === 'image.tmdb.org') {
     e.respondWith(cacheFirst(req, IMGS, 900));

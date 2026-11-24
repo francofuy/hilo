@@ -20,6 +20,7 @@ const ROUTES = [
 const TABS = ['home', 'universes', 'search', 'settings'];
 const view = $('#view'), nav = $('.nav'), ind = $('#ind');
 let cleanup = null, lastTab = 'home', stack = [];
+document.documentElement.dataset.fx = store.state().fx || 'full';
 const scrolls = new Map();
 
 $('#pill').innerHTML = '<span class="ind" id="ind"></span>' + [['home', '#/', 'Inicio', 'home'], ['universes', '#/universes', 'Universos', 'uni'], ['search', '#/search', 'Buscar', 'search'], ['settings', '#/settings', 'Ajustes', 'gear']]
@@ -49,6 +50,7 @@ async function route() {
   const el = document.createElement('div'); el.className = 'page';
   view.replaceChildren(el);
   document.documentElement.style.setProperty('--h', 215);
+  ['--as', '--al', '--h2'].forEach((p) => document.documentElement.style.removeProperty(p));
   const t = hit.mod.tab !== undefined ? hit.mod.tab : null;
   if (t) lastTab = t;
   const setup = !!hit.mod.setup;
