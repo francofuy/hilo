@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><style>html,body{margin:0;background:#09090c}</style>
+<canvas id="c" width="1024" height="1024"></canvas>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+const g=x.createLinearGradient(0,0,0,1024);g.addColorStop(0,'#1a1a26');g.addColorStop(1,'#09090c');x.fillStyle=g;x.fillRect(0,0,1024,1024);
+const r=x.createRadialGradient(720,260,20,720,260,620);r.addColorStop(0,'rgba(255,140,80,.55)');r.addColorStop(1,'rgba(255,140,80,0)');x.fillStyle=r;x.fillRect(0,0,1024,1024);
+// hilo: curva desde abajo a la izquierda hasta arriba a la derecha, con dos nodos
+x.lineCap='round';
+const lg=x.createLinearGradient(220,820,800,220);lg.addColorStop(0,'#ff9a5a');lg.addColorStop(1,'#ff5fa2');
+x.strokeStyle=lg;x.lineWidth=70;x.shadowColor='rgba(255,120,120,.55)';x.shadowBlur=60;
+x.beginPath();x.moveTo(230,810);x.bezierCurveTo(230,430,560,720,800,230);x.stroke();
+x.shadowBlur=0;x.fillStyle='#fff';
+x.beginPath();x.arc(230,810,62,0,7);x.fill();x.beginPath();x.arc(800,230,62,0,7);x.fill();
+</script>
