@@ -6,13 +6,19 @@ import { nextEpisode } from './progress.js';
 import { openRecap, openSheet } from './sheet.js';
 import * as extras from './extras.js';
 import { resolveTheme, applyTheme } from './theme.js';
-import { mountScenes } from './scenes.js';
 import { esc, ic, artHTML, posterCard, ring, animate, normItem, fromMeta, hueOf, img, epLabel, fmtDate, parallax, toast, $, $$ } from './ui.js';
 
 export const tab = null;
 const q = encodeURIComponent;
 const BASED = { 'based on comic': 'Basada en un cómic', 'based on comic book': 'Basada en un cómic', 'based on graphic novel': 'Basada en una novela gráfica', 'based on novel or book': 'Basada en una novela o libro', 'based on novel': 'Basada en una novela', 'based on young adult novel': 'Basada en una novela juvenil', 'based on manga': 'Basada en un manga', 'based on video game': 'Basada en un videojuego', 'based on true story': 'Basada en hechos reales', 'based on tv series': 'Basada en una serie', 'based on cartoon': 'Basada en una caricatura', 'based on short story': 'Basada en un cuento', 'based on play or musical': 'Basada en una obra de teatro', 'based on anime': 'Basada en un anime' };
 
+// Logo oficial y póster sin texto que TMDB ya entrega con cada título.
+function heroAssetsOf(d) {
+  const im = d.images || {}, rank = { es: 0, en: 1 };
+  const logos = (im.logos || []).filter((l) => /\.png$/.test(l.file_path)).sort((a, b) => (rank[a.iso_639_1] ?? 2) - (rank[b.iso_639_1] ?? 2) || (b.vote_average || 0) - (a.vote_average || 0));
+  const posters = (im.posters || []).filter((p) => p.iso_639_1 == null && p.width >= 1000).sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0));
+  return { logo: logos[0] ? img(logos[0].file_path, 'w500') : '', poster: posters[0] ? img(posters[0].file_path, 'w780') : '' };
+}
 function scenesOf(d) {
   const bd = (d.images && d.images.backdrops) || [];
   return bd.filter((b) => b.iso_639_1 == null && b.aspect_ratio > 1.7 && b.aspect_ratio < 1.85 && b.file_path !== d.backdrop_path)
@@ -49,8 +55,9 @@ export async function mount(el, { type, id, query }) {
   const n = normItem(d, type), S = store.state();
   const pal = null; // TMDB no permite leer los colores de sus imágenes: el tono sale del universo o del género
   const T = resolveTheme(k, d, n.g, U, pal), hue = T.h;
-  const posterHero = !(n.backdrop && img(n.backdrop, 'w1280'));
-  let SC = [], stopScenes = () => {};
+  const assets = heroAssetsOf(d), bdSrc = img(d.backdrop_path, 'w1280');
+  const posterSrc = assets.poster || bdSrc || img(d.poster_path, 'w780'), textFree = !!(assets.poster || bdSrc);
+  const SC = scenesOf(d);
   el.style.setProperty('--h', hue); document.documentElement.style.setProperty('--h', hue);
   const title = n.title, orig = d.original_title || d.original_name || title, t0 = store.today();
 
@@ -76,24 +83,37 @@ export async function mount(el, { type, id, query }) {
   /* ---------- HTML ---------- */
   const longT = title.length > 22 ? ' long' : '';
   const starBtns = [1, 2, 3, 4, 5].map((s) => '<button data-a="rate" data-n="' + s + '" class="' + ((S.rate[k] || 0) >= s ? 'on' : '') + '" aria-label="' + s + ' estrellas"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 3.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 17l-5.4 3 1.2-6-4.5-4.2 6.1-.7z"/></svg></button>').join('');
-  let html = '<div class="dhero' + (posterHero ? ' ph' : '') + '"><div class="hero-art">' + artHTML(n) + '</div><div class="hero-blur"></div><div class="hero-shade"></div>' +
-    '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button>' +
-    '<div class="toprt"><button class="gbtn" id="folbtn" data-a="follow" aria-label="Seguir">' + ic('mark', 20) + '</button><button class="gbtn" id="offbtn" data-a="off" aria-label="Guardar para ver sin conexión">' + ic('dl', 22) + '</button></div>' +
-    '<div class="hero-in"><div class="kick">' + (U.byKey[k] ? 'Universo ' + esc(U.byId[U.byKey[k][0]].title) : isTv ? 'Serie' : 'Película') + '</div><h1 class="dtitle' + longT + '">' + esc(title) + '</h1>' +
-    '<div class="dmeta">' + vote + '<span>' + esc(metaBits.join(' · ')) + '</span></div><div class="stars" role="group" aria-label="Tu puntuación">' + starBtns + '</div></div></div>' +
-    '<div class="pad">' + (d.tagline ? '<p class="tag">“' + esc(d.tagline) + '”</p>' : '') + '<p class="syn">' + esc(d.overview || 'Sin sinopsis disponible.') + (d._en ? ' <span style="color:var(--fg3)">(sinopsis en inglés)</span>' : '') + '</p>' +
-    '<div class="cta"><button class="btn pri" id="mainbtn" data-a="main"></button>' + (isTv ? '<button class="btn glass" id="recapbtn" data-recap="' + k + '" hidden>' + ic('prev', 19) + 'Anteriormente</button>' : '') + '</div></div>' +
-    '<div class="tabs" id="tabs"><button class="gbtn mini" data-a="back" aria-label="Volver">' + ic('back', 20, 2) + '</button><div class="seg" role="tablist">' + tabs.map((t, i) => '<button role="tab" data-a="tab" data-p="' + t[0] + '" class="' + (i === 0 ? 'on' : '') + '">' + t[1] + '</button>').join('') + '</div></div>';
+  let html = newHero();
   tabs.forEach(([p], i) => { html += '<div class="pane" data-pane="' + p + '"' + (i ? ' hidden' : '') + '>' + pane(p) + '</div>'; });
   el.innerHTML = html;
-  const stopTheme = applyTheme(el, T);
+  const TN = { ...T, id: 'clean', deco: '', hero: '', fx: [], bind: null, above: false };
+  const stopTheme = applyTheme(el, TN);
+  const rootEl = document.documentElement;
+  rootEl.classList.add('nd', 'nd-full');
+  // la imagen es el fondo de TODA la pantalla: nítida arriba y, al bajar, una copia desenfocada y oscura la reemplaza
+  const fsEl = document.createElement('div'); fsEl.className = 'fs-bg';
+  fsEl.innerHTML = '<img class="a" src="' + posterSrc + '" alt=""><img class="b" src="' + posterSrc + '" alt=""><i></i>';
+  document.body.appendChild(fsEl);
+  const fsA = $('.a', fsEl), fsB = $('.b', fsEl); let fsRaf = 0;
+  const fsUpd = () => { fsRaf = 0; const hero = $('.fs-hero', el), h = Math.max(1, (hero ? hero.offsetHeight : 600) * 0.62), p = Math.max(0, Math.min(1, window.scrollY / h)); fsB.style.opacity = p; fsA.style.transform = 'scale(' + (1 + p * 0.06) + ')'; };
+  const fsFn = () => { if (!fsRaf) fsRaf = requestAnimationFrame(fsUpd); };
+  window.addEventListener('scroll', fsFn, { passive: true }); fsUpd();
   animate(el);
-  Promise.resolve(scenesOf(d)).then((list) => {
-    if (!el.isConnected) return;
-    SC = list; stopScenes = mountScenes(list, img(d.backdrop_path || d.poster_path, 'w780'));
-    $$('.season .sh', el).forEach((sh, i) => { if (!SC.length) return; sh.classList.add('has-ban'); sh.style.setProperty('--sb', 'url(' + SC[i % SC.length] + ')'); });
-    if (comLoaded && $('.gal', el) == null) { comLoaded = false; loadCommunity(); }
-  }).catch(() => {});
+
+  /* ---------- héroe: poco texto y una acción principal ---------- */
+  function newHero() {
+    const lg = !textFree ? '<h1 class="sr">' + esc(title) + '</h1>' : assets.logo ? '<img class="lg" src="' + assets.logo + '" alt="' + esc(title) + '">' : '<h1 class="dtitle nt' + longT + '">' + esc(title) + '</h1>';
+    const rate = d.vote_count >= 30 && d.vote_average ? d.vote_average.toFixed(1) + ' · ' : '';
+    const yrs = isTv && d.last_air_date && d.last_air_date.slice(0, 4) !== n.year && d.status !== 'Returning Series' ? n.year + '–' + d.last_air_date.slice(0, 4) : n.year;
+    const mt = '<div class="mt">' + esc(rate + [isTv ? 'Serie' : 'Película', yrs, isTv ? (d.number_of_seasons ? d.number_of_seasons + (d.number_of_seasons === 1 ? ' temporada' : ' temporadas') : '') : rt].filter(Boolean).join(' · ')) + '</div>';
+    const back = '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button>';
+    const pri = '<div class="pri-row"><button class="btn pri" id="mainbtn" data-a="main"></button></div>';
+    const acts = '<div class="acts3"><button class="ab" id="folbtn" data-a="follow" aria-label="Seguir"></button>' + (isTv ? '<button class="ab" id="recapbtn" data-recap="' + k + '" hidden>' + ic('prev', 24) + '<span>Anteriormente</span></button>' : '') + '<button class="ab" id="offbtn" data-a="off" aria-label="Guardar para ver sin conexión"></button></div>';
+    const long = (d.overview || '').length > 150;
+    const syn = '<p class="syn' + (long ? ' clamp' : '') + '">' + esc(d.overview || 'Sin sinopsis disponible.') + '</p>' + (long ? '<button class="more" data-a="more">Más</button>' : '');
+    const tabsH = '<div class="tabs" id="tabs"><button class="gbtn mini" data-a="back" aria-label="Volver">' + ic('back', 20, 2) + '</button><div class="seg" role="tablist">' + tabs.map((t, i) => '<button role="tab" data-a="tab" data-p="' + t[0] + '" class="' + (i === 0 ? 'on' : '') + '">' + t[1] + '</button>').join('') + '</div></div>';
+    return '<div class="fs-hero">' + back + '<div class="fs-in">' + lg + mt + pri + acts + '</div></div><div class="pad fs-body">' + syn + '</div>' + tabsH;
+  }
 
   /* ---------- paneles ---------- */
   function pane(p) {
@@ -139,7 +159,7 @@ export async function mount(el, { type, id, query }) {
     X = X0;
     const watched = isTv ? store.isDone(k) : store.isMovieWatched(k);
     const gate = (inner, what) => watched ? inner : '<div class="gate"><div class="gated">' + inner + '</div><div class="cover"><b>Puede contar la historia</b><span>' + what + '</span><button class="btn glass small" data-a="reveal">Mostrar igual</button></div></div>';
-    let o = '';
+    let o = '<section class="csec"><h3 class="ch">Tu puntuación</h3><div class="stars" role="group" aria-label="Tu puntuación" style="margin-top:0">' + starBtns + '</div></section>';
     const shots = [d.backdrop_path && img(d.backdrop_path, 'w780'), ...SC].filter(Boolean);
     if (shots.length > 1) o += '<section class="csec"><h3 class="ch">Escenas <small>' + shots.length + ' imágenes</small></h3><div class="gal">' + shots.map((u, i) => '<button data-a="shot" data-i="' + i + '" aria-label="Ver escena ' + (i + 1) + '"><img src="' + u + '" alt="" loading="lazy"></button>').join('') + '</div></section>';
     if (X.trailer) o += '<section class="csec"><h3 class="ch">Tráiler</h3><button class="vid" data-a="play" data-k="' + esc(X.trailer.key) + '" aria-label="Reproducir tráiler">' + (d.backdrop_path ? '<img src="' + img(d.backdrop_path, 'w780') + '" alt="">' : '') + '<span class="pl"><span class="pb">' + ic('play', 26) + '</span></span><span class="vt">' + esc(X.trailer.name) + '</span></button></section>';
@@ -195,7 +215,7 @@ export async function mount(el, { type, id, query }) {
   let ne = null;
   function syncRows() {
     $$('.ep', el).forEach((li) => { const s = +li.dataset.s, e = +li.dataset.e; li.classList.toggle('done', store.epDone(k, s, e)); li.classList.toggle('next', !!ne && !ne.upcoming && ne.s === s && ne.e === e); });
-    $$('.season', el).forEach((box) => { const s = +box.dataset.s, sa = seasonsAll.find((x) => x.season_number === s); if (!sa) return; const c = store.seasonCount(k, s); $('[data-sc]', box).textContent = c + ' / ' + sa.episode_count; $('.bar i', box).style.width = (c / sa.episode_count * 100) + '%'; });
+    $$('.season', el).forEach((box) => { const s = +box.dataset.s, sa = seasonsAll.find((x) => x.season_number === s); if (!sa) return; const c = store.seasonCount(k, s); $('[data-sc]', box).textContent = c + ' / ' + sa.episode_count; const bi = $('.bar i', box); if (bi) bi.style.width = (c / sa.episode_count * 100) + '%'; });
   }
   async function refresh() {
     store.remember(type, d);
@@ -212,8 +232,8 @@ export async function mount(el, { type, id, query }) {
       else b.innerHTML = ic('play', 18) + (c ? 'Retomar' : 'Empezar');
       $('#recapbtn', el).hidden = !c;
     } else b.innerHTML = store.isMovieWatched(k) ? ic('check', 18) + 'Vista' : 'Marcar como vista';
-    fol.classList.toggle('on', store.isFollowed(k)); fol.innerHTML = ic(store.isFollowed(k) ? 'markok' : 'mark', 20);
-    off.classList.toggle('on', !!S.off[k]); off.innerHTML = ic(S.off[k] ? 'dlok' : 'dl', 22);
+    fol.classList.toggle('on', store.isFollowed(k)); fol.innerHTML = ic(store.isFollowed(k) ? 'markok' : 'mark', 24) + '<span>' + (store.isFollowed(k) ? 'Siguiendo' : 'Seguir') + '</span>';
+    off.classList.toggle('on', !!S.off[k]); off.innerHTML = ic(S.off[k] ? 'dlok' : 'dl', 24) + '<span>' + (S.off[k] ? 'Guardada' : 'Descargar') + '</span>';
     $$('.stars button', el).forEach((s) => s.classList.toggle('on', (S.rate[k] || 0) >= +s.dataset.n));
   }
   if (isTv) { await 0; loadSeason(curSeason); }
@@ -244,6 +264,7 @@ export async function mount(el, { type, id, query }) {
     cast.slice(0, 18).forEach((c) => c.profile_path && urls.add(img(c.profile_path, 'w185')));
     ((d.recommendations && d.recommendations.results) || []).slice(0, 14).forEach((r) => r.poster_path && urls.add(img(r.poster_path, 'w342')));
     scenesOf(d).forEach((u) => urls.add(u));
+    [assets.poster, assets.logo, posterSrc].forEach((u) => u && urls.add(u));
     toast('Guardando para ver sin conexión…');
     if (isTv) { for (const s of seasonsAll) { try { const sd = await api.season(id, s.season_number); (sd.episodes || []).forEach((ep) => ep.still_path && urls.add(img(ep.still_path, 'w300'))); } catch (e) { /* sigue */ } } }
     const list = [...urls].filter(Boolean); let i = 0, ok = 0;
@@ -259,6 +280,7 @@ export async function mount(el, { type, id, query }) {
     if (act === 'back') return back();
     if (act === 'tab') return switchTab(a.dataset.p);
     if (act === 'season') return selectSeason(a.dataset.s);
+    if (act === 'more') { const p = $('.syn', el); p.classList.toggle('clamp'); a.textContent = p.classList.contains('clamp') ? 'Más' : 'Menos'; return; }
     if (act === 'follow') { store.follow(k, !store.isFollowed(k)); syncCta(); toast(store.isFollowed(k) ? 'Siguiendo ' + title : 'Dejaste de seguir ' + title); return; }
     if (act === 'rate') { const nn = +a.dataset.n; store.rate(k, S.rate[k] === nn ? 0 : nn); syncCta(); return; }
     if (act === 'off') { if (S.off[k]) { delete S.off[k]; store.save(); syncCta(); toast('Quitado de sin conexión'); } else saveOffline(); return; }
@@ -296,5 +318,5 @@ export async function mount(el, { type, id, query }) {
   const onScroll = () => tabsEl.classList.toggle('stuck', tabsEl.getBoundingClientRect().top <= 1);
   window.addEventListener('scroll', onScroll, { passive: true });
   const stop = parallax(el);
-  return () => { window.removeEventListener('scroll', onScroll); stop(); stopTheme(); stopScenes(); };
+  return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('scroll', fsFn); stop(); stopTheme(); fsEl.remove(); rootEl.classList.remove('nd', 'nd-full'); };
 }

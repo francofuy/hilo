@@ -20,7 +20,10 @@ export function setFx(v) { S.fx = v; save(); }
 /* ---------- metadatos mínimos (para dibujar el inicio sin red) ---------- */
 export function remember(type, d) {
   const k = kid(type, d.id);
-  const m = { type, id: d.id, t: d.title || d.name, p: d.poster_path || null, b: d.backdrop_path || null,
+  const im = d.images || {};
+  const lgs = (im.logos || []).filter((l) => /\.png$/.test(l.file_path)).sort((a, b) => ({ es: 0, en: 1 }[a.iso_639_1] ?? 2) - ({ es: 0, en: 1 }[b.iso_639_1] ?? 2) || (b.vote_average || 0) - (a.vote_average || 0));
+  const tps = (im.posters || []).filter((p) => p.iso_639_1 == null && p.width >= 1000).sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0));
+  const m = { type, id: d.id, t: d.title || d.name, p: d.poster_path || null, b: d.backdrop_path || null, lg: lgs[0] ? lgs[0].file_path : null, tp: tps[0] ? tps[0].file_path : null,
     d: d.release_date || d.first_air_date || '', g: (d.genres || []).map((x) => x.id) };
   m.y = m.d.slice(0, 4);
   if (type === 'tv') {

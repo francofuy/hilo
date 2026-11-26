@@ -47,7 +47,7 @@ async function withOverview(type, id, d) {
   try { const en = await call('/' + type + '/' + id, {}, 'en-US'); if (en.overview) { d.overview = en.overview; d._en = true; } } catch (e) { /* sin sinopsis */ }
   return d;
 }
-const MEDIA = { include_image_language: 'null', include_video_language: 'es,en,null' };
+const MEDIA = { include_image_language: 'es,en,null', include_video_language: 'es,en,null' };
 export async function tv(id) { return withOverview('tv', id, await call('/tv/' + id, { append_to_response: APPEND_TV, ...MEDIA })); }
 export async function movie(id) { return withOverview('movie', id, await call('/movie/' + id, { append_to_response: APPEND_MOVIE, ...MEDIA })); }
 export const reviews = (type, id) => call('/' + type + '/' + id + '/reviews', {}, 'en-US');

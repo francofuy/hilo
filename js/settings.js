@@ -3,7 +3,7 @@ import * as store from './store.js';
 import * as api from './api.js';
 import { esc, ic, toast, $, $$ } from './ui.js';
 
-export const VERSION = '1.1.0';
+export const VERSION = '1.2.0';
 const REGIONS = [['AR', 'Argentina'], ['MX', 'México'], ['CL', 'Chile'], ['CO', 'Colombia'], ['UY', 'Uruguay'], ['PE', 'Perú'], ['ES', 'España'], ['BR', 'Brasil'], ['US', 'Estados Unidos']];
 
 export const setupTab = null;
@@ -37,7 +37,6 @@ export async function mount(el) {
   el.innerHTML = '<div class="pagehead"><h1>Ajustes</h1></div><div class="form">' +
     (standalone ? '' : '<div class="card"><h3>Instalá Hilo en tu iPhone</h3><p>En Safari tocá <b style="color:var(--fg)">Compartir</b> y después <b style="color:var(--fg)">Agregar a inicio</b>. Instalada se abre a pantalla completa y el teléfono no borra tus datos.</p></div>') +
     '<div class="card"><h3>Conexión con TMDB</h3><p>API key guardada: <b style="color:var(--fg)">••••' + esc(S.key.slice(-4)) + '</b></p><div id="chg" hidden style="margin-top:12px;display:grid;gap:10px"><div class="field"><input id="nk" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nueva API key"></div><div class="err" id="kerr"></div></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn glass small" data-a="chgkey">Cambiar key</button></div></div>' +
-    '<div class="card"><h3>Efectos visuales</h3><p>Animaciones y partículas de cada ficha. Los efectos suaves gastan menos batería.</p><div class="chips" style="margin-top:12px" id="fxl">' + [['off', 'Apagados'], ['soft', 'Suaves'], ['full', 'Completos']].map((f) => '<button data-a="fx" data-f="' + f[0] + '" class="' + ((S.fx || 'full') === f[0] ? 'on' : '') + '">' + f[1] + '</button>').join('') + '</div></div>' +
     '<div class="card"><div class="field"><label for="reg">Dónde ver (país)</label><select id="reg">' + REGIONS.map((r) => '<option value="' + r[0] + '"' + (S.region === r[0] ? ' selected' : '') + '>' + r[1] + '</option>').join('') + '</select></div><p style="margin-top:10px">Define qué plataformas se muestran en cada ficha.</p></div>' +
     '<div class="card"><h3>Sin conexión</h3><p>' + (offList.length ? 'Guardados en este teléfono:' : 'Todavía no guardaste nada. Tocá el ícono de descarga en la ficha de una serie o película.') + '</p>' +
     (offList.length ? '<div style="display:grid;gap:8px;margin-top:10px">' + offList.map((m) => '<div class="lk"><div><a href="#/' + m.type + '/' + m.id + '">' + esc(m.t) + '</a></div><button class="linkbtn" data-a="rmoff" data-k="' + m.type + ':' + m.id + '">Quitar</button></div>').join('') + '</div>' : '') + '</div>' +
@@ -57,7 +56,6 @@ export async function mount(el) {
       a.disabled = true; try { await api.validate(v); store.setKey(v); api.clearMemory(); toast('API key actualizada'); mount(el); } catch (er) { $('#kerr', el).textContent = er.message; a.disabled = false; }
       return;
     }
-    if (act === 'fx') { store.setFx(a.dataset.f); document.documentElement.dataset.fx = a.dataset.f; $$('#fxl button', el).forEach((x) => x.classList.toggle('on', x === a)); toast('Efectos: ' + a.textContent.toLowerCase()); return; }
     if (act === 'rmoff') { delete S.off[a.dataset.k]; store.save(); mount(el); return; }
     if (act === 'exp') { const txt = store.exportJSON(); try { await navigator.clipboard.writeText(txt); toast('Respaldo copiado'); } catch (er) { $('#imp', el).value = txt; toast('Copialo desde el cuadro de abajo'); } return; }
     if (act === 'dl') { const b = new Blob([store.exportJSON()], { type: 'application/json' }); const u = URL.createObjectURL(b); const l = document.createElement('a'); l.href = u; l.download = 'hilo-respaldo.json'; document.body.append(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 2000); return; }

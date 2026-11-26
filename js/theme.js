@@ -112,7 +112,7 @@ export function applyTheme(el, T) {
   const fixed = document.createElement('div'); fixed.className = 'decof th-' + T.id + (T.above ? ' above' : ''); fixed.innerHTML = T.deco || ''; document.body.appendChild(fixed);
 
   let stopFx = () => {}, cv = null;
-  if (level !== 'off') {
+  if (level !== 'off' && (T.fx || []).length) {
     const scale = level === 'soft' ? 0.5 : 1;
     cv = document.createElement('canvas'); cv.className = 'fxc'; document.body.appendChild(cv);
     stopFx = startFx(cv, (T.fx || []).map((s) => ({ ...s, n: s.n != null ? Math.max(1, Math.round(s.n * scale)) : s.n })));
