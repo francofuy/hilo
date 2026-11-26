@@ -1,6 +1,7 @@
 // Capa de datos: TMDB. Todo se pide en español (es-MX) y, si falta la sinopsis,
 // se completa con la versión en inglés.
 import { state } from './store.js';
+import { img } from './ui.js';
 
 const BASE = 'https://api.themoviedb.org/3';
 const mem = new Map();
@@ -72,3 +73,19 @@ export async function collection(id) {
 export const search = (q) => call('/search/multi', { query: q, include_adult: 'false' });
 export const trending = () => call('/trending/all/week');
 export const clearMemory = () => mem.clear();
+
+/* ---------- arte, recomendaciones y datos mínimos (portadas del Inicio, Universos y Buscar) ---------- */
+// Logo oficial y póster sin texto que TMDB entrega con cada título.
+export function assetsFrom(im) {
+  const rank = { es: 0, en: 1 };
+  const logos = ((im && im.logos) || []).filter((l) => /\.png$/.test(l.file_path)).sort((a, b) => (rank[a.iso_639_1] ?? 2) - (rank[b.iso_639_1] ?? 2) || (b.vote_average || 0) - (a.vote_average || 0));
+  const posters = ((im && im.posters) || []).filter((p) => p.iso_639_1 == null && p.width >= 1000).sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0));
+  return { logo: logos[0] ? img(logos[0].file_path, 'w500') : '', poster: posters[0] ? img(posters[0].file_path, 'w780') : '' };
+}
+export async function heroAssets(type, id) {
+  try { return assetsFrom(await call('/' + type + '/' + id + '/images', { include_image_language: 'es,en,null' })); } catch (e) { return {}; }
+}
+export async function recsOf(type, id) { const r = await call('/' + type + '/' + id + '/recommendations'); return r.results || []; }
+export async function discoverInfo(type, id) {
+  try { const d = await call('/' + type + '/' + id); return { t: d.title || d.name, y: (d.release_date || d.first_air_date || '').slice(0, 4), g: (d.genres || []).map((g) => g.id), o: d.overview || '', b: d.backdrop_path || null, p: d.poster_path || null }; } catch (e) { return null; }
+}

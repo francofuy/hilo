@@ -1,13 +1,51 @@
-// Universos: cada saga en orden, con "estoy aquí" y marcado en bloque.
+// Universos: un universo por pantalla; adentro, la lista arranca en "Estoy aquí" y los anteriores quedan plegados.
 import * as store from './store.js';
 import * as api from './api.js';
 import * as data from './data.js';
-import { esc, ic, artHTML, posterImg, ring, animate, hueOf, fmtDate, daysUntil, parallax, toast, $, $$ } from './ui.js';
+import { openSheet } from './sheet.js';
+import { esc, ic, img, fmtDate, daysUntil, hueOf, toast, $, $$ } from './ui.js';
 
 export const tab = 'universes';
-const asNode = (i) => ({ poster: i.p, backdrop: i.b, title: i.t, g: [], id: i.id });
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const locked = (i) => !!(i.d && i.d > store.today());
+const frac = (i) => store.frac(i.key, i.eps);
+const hereOf = (ord) => ord.find((i) => !locked(i) && frac(i) < 0.999);
+function stats(items) { const rel = items.filter((i) => !locked(i)); let done = 0, part = 0, sum = 0; rel.forEach((i) => { const f = frac(i); sum += f; if (f >= 0.999) done++; else if (f > 0) part++; }); return { done, part, total: rel.length, f: rel.length ? sum / rel.length : 0 }; }
+const meta = (i) => (locked(i) ? 'Estreno ' + fmtDate(i.d) : [i.k === 'movie' ? 'Película' : 'Serie', i.rl || i.y].filter(Boolean).join(' · '));
+const checkSvg = ic('check', 16, 3);
+const goBack = () => { if (history.length > 1) history.back(); else location.hash = '#/universes'; };
 
-/* ---------- vista de un universo ---------- */
+// Imagen vertical sin texto del título de portada; si no hay, el fondo horizontal.
+async function artOf(cover) {
+  if (!cover) return '';
+  const a = await api.heroAssets(cover.k, cover.id);
+  return a.poster || img(cover.b, 'w1280') || img(cover.p, 'w780') || '';
+}
+async function setDone(i, on) {
+  if (i.k === 'movie') { store.rememberItem(i); store.setMovie(i.key, on); return; }
+  if (!on) { store.unmarkAll(i.key); return; }
+  try { const d = await api.tv(i.id); store.remember('tv', d); store.markAll(i.key); } catch (e) { toast('Sin conexión: no pude marcar ' + i.t); }
+}
+
+/* ---------- hoja rápida de un título del universo ---------- */
+function openItem(U, i, ord, refresh) {
+  const done = frac(i) >= 0.999;
+  const s = openSheet('<div class="us"><div class="us-h">' + (i.p ? '<img src="' + img(i.p, 'w342') + '" alt="">' : '<span></span>') + '<div><h3>' + esc(i.t) + '</h3><div class="usm">' + esc(meta(i)) + '</div></div></div><p class="us-s" id="uss">&nbsp;</p>' +
+    '<a class="btn pri" href="#/' + i.k + '/' + i.id + '" data-close style="width:100%;margin-top:6px">Ver ficha</a>' +
+    (locked(i) ? '' : '<button class="btn glass" data-act="upto" style="width:100%;margin-top:8px">Marcar todo hasta acá</button><button class="btn glass" data-act="tog" style="width:100%;margin-top:8px">' + (done ? 'Marcar como no visto' : 'Marcar como visto') + '</button>') + '</div>', U.hue);
+  api.details(i.k, i.id).then((d) => { const p = $('#uss', s.el); if (p) p.textContent = d.overview || 'Sin sinopsis disponible.'; }).catch((e) => { const p = $('#uss', s.el); if (p) p.textContent = e.code === 'offline' ? 'Sin conexión: la sinopsis no está disponible ahora.' : 'Sin sinopsis disponible.'; });
+  s.el.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    if (b.dataset.act === 'tog') { await setDone(i, !done); s.close(); refresh(); }
+    if (b.dataset.act === 'upto') {
+      toast('Marcando…'); const stop = ord.indexOf(i);
+      await Promise.all(ord.slice(0, stop + 1).filter((x) => !locked(x) && frac(x) < 0.999).map((x) => setDone(x, true)));
+      s.close(); refresh(); toast('Marcado todo hasta “' + i.t + '”');
+    }
+  });
+}
+
+/* ---------- detalle de un universo ---------- */
 export async function mountCuratedUniverse(el, { id }) {
   let D; try { D = await data.load(); } catch (e) { el.innerHTML = '<div class="empty" style="padding-top:140px"><b>No pude cargar los universos</b>Probá de nuevo en un rato.</div>'; return; }
   const u = D.byId[id];
@@ -16,114 +54,92 @@ export async function mountCuratedUniverse(el, { id }) {
 }
 
 export async function mountCollection(el, { id }) {
-  el.innerHTML = '<div class="uhero"><a class="gbtn backbtn" href="#/universes" aria-label="Volver">' + ic('back', 22, 2) + '</a></div><div class="pad" style="margin-top:20px"><div class="skel"><i></i><i></i><i></i></div></div>';
+  el.innerHTML = '<div class="empty" style="padding-top:140px"><div class="skel"><i></i><i></i></div></div>';
   let c; try { c = await api.collection(id); } catch (e) { el.innerHTML = '<div class="empty" style="padding-top:140px"><b>' + (e.code === 'offline' ? 'Sin conexión' : 'No pude cargar la colección') + '</b><a class="btn glass" href="#/universes">Volver</a></div>'; return; }
   if (!el.isConnected) return;
   const items = (c.parts || []).map((p) => ({ key: 'movie:' + p.id, k: 'movie', id: p.id, t: p.title, y: (p.release_date || '').slice(0, 4), d: p.release_date || null, p: p.poster_path, b: p.backdrop_path }))
     .sort((a, b) => (a.d || '9').localeCompare(b.d || '9'));
   const cover = items.find((i) => i.b) || items[0];
-  return render(el, { id: 'c' + id, title: c.name.replace(/ (Collection|Colección)$/i, ''), sub: 'Colección de TMDB · en orden de estreno', modes: false, items, cover, hue: cover ? hueOf([], cover.id) : 215, overview: c.overview });
+  return render(el, { id: 'c' + id, title: c.name.replace(/ (Collection|Colección)$/i, ''), sub: 'Colección de TMDB · en orden de estreno', modes: false, items, cover, hue: cover ? hueOf([], cover.id) : 215 });
 }
 
 async function render(el, U) {
-  let mode = U.modes ? 'chrono' : 'release', filter = 'all', open = null;
-  const t0 = store.today();
-  const hue = U.hue; el.style.setProperty('--h', hue); document.documentElement.style.setProperty('--h', hue);
-  const ovCache = {};
-  const locked = (i) => !!(i.d && i.d > t0);
-  const items = () => (mode === 'release' ? [...U.items].sort((a, b) => (a.d || '9').localeCompare(b.d || '9')) : U.items);
-  const frac = (i) => store.frac(i.key, i.eps);
+  const root = document.documentElement;
+  let mode = U.modes ? 'chrono' : 'release', pend = false, openPrev = false;
+  const art = await artOf(U.cover); if (!el.isConnected) return;
+  root.classList.add('nd', 'nd-full'); el.style.setProperty('--h', U.hue); root.style.setProperty('--h', U.hue);
+  const order = () => data.ordered(U, mode === 'chrono' ? 'chrono' : 'release');
+  const soon = () => U.items.filter(locked).sort((a, b) => a.d.localeCompare(b.d))[0];
 
-  const stats = () => { const rel = U.items.filter((i) => !locked(i)); let done = 0, part = 0, sum = 0; rel.forEach((i) => { const f = frac(i); sum += f; if (f >= 0.999) done++; else if (f > 0) part++; }); return { done, part, total: rel.length, f: rel.length ? sum / rel.length : 0 }; };
-  const soonItem = () => U.items.filter(locked).sort((a, b) => a.d.localeCompare(b.d))[0];
+  el.innerHTML = '<div id="top"></div><div id="body"></div><p class="hm-attr pad" style="margin-top:20px">' + (U.modes ? 'El orden de la historia es una curaduría y puede discutirse.' : '') + '</p>';
+  const topEl = $('#top', el), bodyEl = $('#body', el);
+  const back = '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button>';
 
-  const head = () => {
-    const s = stats(), soon = soonItem(), dd = soon ? daysUntil(soon.d) : null;
-    return '<div class="uhero" data-fade="1"><div class="hero-art">' + (U.cover ? artHTML({ backdrop: U.cover.b, poster: U.cover.p }) : '') + '</div><div class="hero-blur"></div><div class="hero-shade"></div>' +
-      '<a class="gbtn backbtn" href="#/universes" aria-label="Universos">' + ic('back', 22, 2) + '</a>' +
-      '<div class="hero-in"><div class="kick">Universo</div><h1 class="utitle">' + esc(U.title) + '</h1><div class="dmeta">' + esc(U.sub || '') + '</div>' +
-      '<div class="uprog"><div class="ringwrap">' + ring(s.f, 58, 5) + '<b style="font-size:13px">' + Math.round(s.f * 100) + '%</b></div><div><big>' + s.done + '<small> / ' + s.total + '</small></big><span>vistos' + (s.part ? ' · ' + s.part + ' en curso' : '') + '</span></div></div>' +
-      (soon && dd != null && dd >= 0 ? '<div class="soon">' + ic('lock', 14) + (dd === 0 ? 'Se estrena hoy' : dd === 1 ? 'Se estrena mañana' : 'Faltan ' + dd + ' días') + ' · ' + esc(soon.t) + '</div>' : '') + '</div></div>';
-  };
-  const ctrls = () => '<div class="ctrls">' + (U.modes ? '<div class="modes" role="tablist"><span class="ind" style="transform:translateX(' + (mode === 'release' ? '100%' : '0') + ')"></span><button data-a="mode" data-m="chrono" class="' + (mode === 'chrono' ? 'on' : '') + '">Orden de la historia</button><button data-a="mode" data-m="release" class="' + (mode === 'release' ? 'on' : '') + '">Por estreno</button></div>' : '') +
-    '<div class="chips">' + [['all', 'Todo'], ['movie', 'Películas'], ['tv', 'Series'], ['pend', 'Pendientes']].map((f) => '<button data-a="filter" data-f="' + f[0] + '" class="' + (filter === f[0] ? 'on' : '') + '">' + f[1] + '</button>').join('') + '</div></div>';
-
-  const list = (anim) => {
-    const ord = items(); let here = null;
-    ord.forEach((i) => { if (here === null && !locked(i) && frac(i) < 0.999) here = i.key; });
-    let o = '<ul class="tl">', n = 0;
-    ord.forEach((i) => {
-      if (filter === 'movie' && i.k !== 'movie') return; if (filter === 'tv' && i.k !== 'tv') return;
-      const f = frac(i); if (filter === 'pend' && f >= 0.999) return;
-      const lk = locked(i); const cls = lk ? 'lock' : f >= 0.999 ? 'done' : f > 0 ? 'part' : '';
-      const cnt = store.countWatched(i.key), tot = (store.meta(i.key) && store.meta(i.key).tot) || i.eps;
-      const prog = i.k === 'tv' && f > 0 && f < 0.999 ? ' · ' + cnt + ' / ' + tot + ' episodios' : '';
-      const meta = lk ? 'Estreno ' + fmtDate(i.d) : (i.k === 'movie' ? 'Película' : 'Serie') + ' · ' + (i.rl || i.y) + prog;
-      const dot = lk ? ic('lock', 13, 2.2) : f >= 0.999 ? ic('check', 14, 3) : f > 0 ? ring(f, 24, 3) : '';
-      o += '<li class="node ' + cls + (i.key === here ? ' here' : '') + (open === i.key ? ' open' : '') + (anim ? ' rise' : '') + '" data-key="' + i.key + '"' + (anim ? ' style="--i:' + Math.min(n++, 12) + '"' : '') + '>' +
-        '<div class="rail"><button class="dot" data-a="dot" aria-label="' + (f >= 0.999 ? 'Marcar como no visto' : 'Marcar como visto') + '"' + (lk ? ' disabled' : '') + '>' + dot + '</button></div>' +
-        '<div class="nc"><button class="nhead" data-a="node" aria-expanded="' + (open === i.key) + '">' + posterImg({ title: i.t, poster: i.p, g: [], id: i.id }, 'w154') + '<div><div class="nm">' + esc(i.t) + '</div><div class="nmeta">' + esc(meta) + '</div>' + (i.key === here ? '<span class="badge">Estoy aquí</span>' : '') + '</div></button>' +
-        '<div class="nx"><div><p data-ov>' + esc(ovCache[i.key] || '') + '</p><div class="acts">' + (lk ? '' : '<button class="btn glass small" data-a="upto">Marcar hasta acá</button>') + '<a class="btn glass small" href="#/' + i.k + '/' + i.id + '">Ver ficha</a></div></div></div></div></li>';
-    });
-    return o + '</ul>';
+  const row = (i, here) => {
+    const f = frac(i), lk = locked(i);
+    return '<div class="un-row' + (f >= 0.999 ? ' done' : '') + (here ? ' here' : '') + '" data-key="' + i.key + '"><button class="un-it" data-a="item" data-key="' + i.key + '">' + (i.p ? '<img src="' + img(i.p, 'w185') + '" alt="" loading="lazy">' : '<span class="np"></span>') +
+      '<div><b>' + esc(i.t) + '</b><small>' + esc(meta(i)) + (i.k === 'tv' && f > 0 && f < 0.999 ? ' · ' + store.countWatched(i.key) + ' / ' + (((store.meta(i.key) || {}).tot) || i.eps || '?') : '') + '</small>' + (here ? '<em>Estoy aquí</em>' : '') + '</div></button>' +
+      (lk ? '<span class="un-ck lk">' + ic('lock', 16, 2) + '</span>' : '<button class="un-ck" data-a="ck" data-key="' + i.key + '" aria-label="' + (f >= 0.999 ? 'Marcar como no visto' : 'Marcar como visto') + '">' + (f >= 0.999 ? checkSvg : '') + '</button>') + '</div>';
   };
 
-  el.innerHTML = '<div id="uh">' + head() + '</div><div id="uc">' + ctrls() + '</div>' + (U.overview ? '<div class="pad" style="margin-top:6px"><p class="secsub">' + esc(U.overview) + '</p></div>' : '') + '<div id="ul">' + list(true) + '</div>' +
-    '<div class="pad attr" style="margin-top:26px">' + (U.modes ? 'El orden de la historia es una curaduría y puede discutirse. Cambiá a “Por estreno” si preferís el orden de salida.' : '') + '</div>';
-  animate(el);
-  const stop = parallax(el);
-
-  const redraw = (parts) => { if (parts.head) $('#uh', el).innerHTML = head(); if (parts.ctrls) $('#uc', el).innerHTML = ctrls(); $('#ul', el).innerHTML = list(false); animate(el); };
-  const byKey = (k) => U.items.find((i) => i.key === k);
-
-  async function setDone(i, on) {
-    if (i.k === 'movie') { store.rememberItem(i); store.setMovie(i.key, on); return; }
-    if (!on) { store.unmarkAll(i.key); return; }
-    try { const d = await api.tv(i.id); store.remember('tv', d); store.markAll(i.key); } catch (e) { toast('Sin conexión: no pude marcar ' + i.t); }
+  function draw() {
+    const ord = order(), here = hereOf(ord), s = stats(U.items), sn = soon(), dd = sn ? daysUntil(sn.d) : null;
+    const mt = s.done + ' de ' + s.total + ' vistos' + (sn && dd != null && dd >= 0 ? ' · ' + (dd === 0 ? 'hoy' : dd === 1 ? 'mañana' : 'en ' + dd + ' días') + ' llega ' + sn.t : '');
+    const cont = here ? '<div class="pri-row"><button class="btn pri" data-a="cont">' + ic('play', 18) + '<span class="ell">Seguir · ' + esc(here.t) + '</span></button></div>' : '<div class="pri-row"><button class="btn pri" disabled>Al día</button></div>';
+    const modeBtn = U.modes ? '<button class="ab" data-a="mode">' + ic('uni', 24) + '<span>' + (mode === 'chrono' ? 'Orden de la historia' : 'Por estreno') + '</span></button>' : '';
+    const pendBtn = '<button class="ab' + (pend ? ' on' : '') + '" data-a="pend">' + ic('check', 24) + '<span>' + (pend ? 'Solo pendientes' : 'Todos') + '</span></button>';
+    const shown = pend ? ord.filter((i) => frac(i) < 0.999) : ord;
+    const hi = here ? shown.indexOf(here) : -1;
+    topEl.innerHTML = '<div class="un-hero">' + back + '<div class="fs-in"><div class="kk">' + (U.id[0] === 'c' && /^c\d+$/.test(U.id) ? 'Colección' : 'Universo') + '</div><h1 class="un-title">' + esc(U.title) + '</h1><div class="mt">' + esc(mt) + '</div>' + cont + '<div class="acts3">' + modeBtn + pendBtn + '</div></div></div>';
+    const before = hi > 0 ? shown.slice(0, hi) : [], after = hi >= 0 ? shown.slice(hi) : shown;
+    bodyEl.innerHTML = '<div class="pad un-list">' + (before.length ? '<button class="un-prev" data-a="prev"><span>' + (openPrev ? 'Ocultar' : 'Ver') + ' los ' + before.length + ' anteriores</span>' + ic('chev', 16) + '</button>' + (openPrev ? before.map((i) => row(i, false)).join('') : '') : '') + after.map((i) => row(i, i === here)).join('') + '</div>';
   }
+  draw();
+
+  // la imagen es el fondo de TODA la pantalla: nítida arriba y, al bajar, una copia desenfocada y oscura la reemplaza
+  const fsEl = document.createElement('div'); fsEl.className = 'fs-bg'; fsEl.innerHTML = '<img class="a" src="' + art + '" alt=""><img class="b" src="' + art + '" alt=""><i></i>'; document.body.appendChild(fsEl);
+  const A = $('.a', fsEl), B = $('.b', fsEl); let raf = 0;
+  const upd = () => { raf = 0; const hero = $('.un-hero', el), p = clamp(window.scrollY / Math.max(1, (hero ? hero.offsetHeight : 600) * 0.62), 0, 1); B.style.opacity = p; A.style.transform = 'scale(' + (1 + p * 0.06) + ')'; };
+  const fsFn = () => { if (!raf) raf = requestAnimationFrame(upd); }; window.addEventListener('scroll', fsFn, { passive: true }); upd();
 
   el.addEventListener('click', async (e) => {
-    const a = e.target.closest('[data-a]'); if (!a) return; const act = a.dataset.a;
-    if (act === 'mode') { mode = a.dataset.m; $('.modes .ind', el).style.transform = 'translateX(' + (mode === 'release' ? '100%' : '0') + ')'; $$('.modes button', el).forEach((b) => b.classList.toggle('on', b === a)); return redraw({}); }
-    if (act === 'filter') { filter = a.dataset.f; $$('.chips button', el).forEach((b) => b.classList.toggle('on', b === a)); return redraw({}); }
-    const node = a.closest('.node'); if (!node) return; const i = byKey(node.dataset.key);
-    if (act === 'node') {
-      open = open === i.key ? null : i.key;
-      $$('.node', el).forEach((n) => { n.classList.toggle('open', n.dataset.key === open); const h = $('.nhead', n); if (h) h.setAttribute('aria-expanded', String(n.dataset.key === open)); });
-      if (open && ovCache[i.key] == null) { try { const d = await api.details(i.k, i.id); ovCache[i.key] = d.overview || 'Sin sinopsis disponible.'; } catch (err) { ovCache[i.key] = 'Sin conexión: la sinopsis no está disponible ahora.'; } const p = $('[data-ov]', node); if (p) p.textContent = ovCache[i.key]; }
-      return;
-    }
-    if (act === 'dot') { await setDone(i, frac(i) < 0.999); return redraw({ head: 1 }); }
-    if (act === 'upto') {
-      const ord = items(), stopAt = ord.indexOf(i); toast('Marcando…');
-      await Promise.all(ord.slice(0, stopAt + 1).filter((x) => !locked(x) && frac(x) < 0.999).map((x) => setDone(x, true)));
-      redraw({ head: 1 }); toast('Marcado todo hasta “' + i.t + '”'); return;
-    }
+    const a = e.target.closest('[data-a]'); if (!a) return; const act = a.dataset.a, ord = order();
+    if (act === 'back') return goBack();
+    if (act === 'mode') { mode = mode === 'chrono' ? 'release' : 'chrono'; return draw(); }
+    if (act === 'pend') { pend = !pend; return draw(); }
+    if (act === 'prev') { openPrev = !openPrev; return draw(); }
+    const i = U.items.find((x) => x.key === a.dataset.key);
+    if (act === 'cont') { const h = hereOf(ord); if (h) location.hash = '#/' + h.k + '/' + h.id + '?go=next'; return; }
+    if (act === 'item' && i) return openItem(U, i, ord, draw);
+    if (act === 'ck' && i) { await setDone(i, frac(i) < 0.999); return draw(); }
   });
-  return stop;
+  return () => { window.removeEventListener('scroll', fsFn); fsEl.remove(); root.classList.remove('nd', 'nd-full'); };
 }
 
-/* ---------- pestaña Universos ---------- */
+/* ---------- pestaña Universos: un universo por pantalla ---------- */
 export async function mountList(el) {
   if (!store.state().key) { location.hash = '#/setup'; return; }
   let D; try { D = await data.load(); } catch (e) { D = { universes: [], byKey: {} }; }
-  const S = store.state();
-  el.style.setProperty('--h', 215); document.documentElement.style.setProperty('--h', 215);
-  const tr = Object.keys(S.meta).filter((k) => store.tracked(k));
-  const tU = new Set(); tr.forEach((k) => (D.byKey[k] || []).forEach((u) => tU.add(u)));
-  const unis = [...D.universes].sort((a, b) => (tU.has(b.id) ? 1 : 0) - (tU.has(a.id) ? 1 : 0));
+  const S = store.state(), root = document.documentElement;
+  const panels = D.universes.map((u) => ({ href: '#/universe/' + u.id, title: u.title, sub: u.sub, here: hereOf(data.ordered(u, 'chrono')), s: stats(u.items), cover: u.cover, hue: data.uhue(u) }));
+  // colecciones de TMDB que se detectan solas (películas que seguís y tienen secuelas)
+  const known = new Set(); D.universes.forEach((u) => u.items.forEach((i) => known.add(i.key)));
   const colls = {};
-  tr.forEach((k) => { const m = S.meta[k]; if (m.type === 'movie' && m.coll && !(D.byKey[k] || []).length) colls[m.coll.id] = m.coll; });
-  let o = '<div class="pagehead"><h1>Universos</h1><div class="secsub">Cada historia con su orden y por dónde vas</div></div><div class="pad" style="display:grid;gap:14px;margin-top:20px">';
-  unis.forEach((u, ix) => {
-    const s = data.stats(u);
-    o += '<a class="ucard big rise" style="--h:' + data.uhue(u) + ';--i:' + Math.min(ix, 8) + '" href="#/universe/' + u.id + '">' + (u.cover ? artHTML({ backdrop: u.cover.b, poster: u.cover.p }).replace('w1280', 'w780') : '') + '<div class="uc-in"><div><div class="uc-t" style="font-size:32px">' + esc(u.title) + '</div><div class="uc-s">' + esc(u.sub) + ' · ' + s.done + ' de ' + s.total + ' vistos</div></div><div class="ringwrap">' + ring(s.f, 52, 4) + '<b>' + Math.round(s.f * 100) + '%</b></div></div></a>';
-  });
-  const cl = Object.values(colls);
-  if (cl.length) {
-    o += '</div><div class="pad secbox"><h2 class="sec">Colecciones detectadas</h2><div class="secsub">Películas que viste y tienen secuelas o precuelas</div></div><div class="pad" style="display:grid;gap:14px">';
-    cl.forEach((c, ix) => { o += '<a class="ucard big rise" style="--h:' + ((c.id * 47) % 360) + ';--i:' + ix + '" href="#/collection/' + c.id + '">' + artHTML({ backdrop: c.b, poster: c.p }).replace('w1280', 'w780') + '<div class="uc-in"><div><div class="uc-t" style="font-size:28px">' + esc(c.name.replace(/ (Collection|Colección)$/i, '')) + '</div><div class="uc-s">Colección de TMDB</div></div>' + ic('chev', 22) + '</div></a>'; });
-  }
-  o += '</div><div class="pad" style="margin-top:14px"><div class="addcard">' + ic('plus', 24) + '<b style="color:var(--fg)">Más universos</b><span>Cuando una película que seguís pertenece a una saga de TMDB, aparece acá sola. Podés sumar más universos curados cuando quieras.</span></div></div>';
-  el.innerHTML = o; animate(el);
+  Object.keys(S.meta).filter((k) => store.tracked(k)).forEach((k) => { const m = S.meta[k]; if (m.type === 'movie' && m.coll && !known.has(k)) colls[m.coll.id] = m.coll; });
+  Object.values(colls).forEach((c) => panels.push({ href: '#/collection/' + c.id, title: c.name.replace(/ (Collection|Colección)$/i, ''), sub: 'Colección de TMDB', here: null, s: null, art: img(c.b, 'w1280') || img(c.p, 'w780'), hue: (c.id * 47) % 360 }));
+  panels.sort((a, b) => ((b.s && b.s.f > 0) ? 1 : 0) - ((a.s && a.s.f > 0) ? 1 : 0) || ((b.s ? b.s.f : 0) - (a.s ? a.s.f : 0)));
+  await Promise.all(panels.map(async (p) => { if (!p.art) p.art = await artOf(p.cover); }));
+  if (!el.isConnected) return;
+  root.classList.add('nd', 'nd-full', 'snapy'); el.style.setProperty('--h', panels[0] ? panels[0].hue : 215); root.style.setProperty('--h', panels[0] ? panels[0].hue : 215);
+  const sub = (p) => (!p.s ? p.sub : p.s.done || p.s.part ? p.s.done + ' de ' + p.s.total + ' vistos' : p.s.total + ' títulos');
+
+  el.innerHTML = '<div class="hm-brand">' + ic('uni', 20, 2) + '<span>Universos</span></div>' + panels.map((p, i) => '<section class="un-pan" data-i="' + i + '"><div class="fs-in"><div class="kk">' + esc(sub(p)) + '</div><h2 class="un-title">' + esc(p.title) + '</h2><div class="mt">' + (p.here ? 'Sigue: ' + esc(p.here.t) : esc(p.sub || '')) + '</div><div class="pri-row"><a class="btn pri" href="' + p.href + '">Abrir</a></div></div></section>').join('');
+  const fsEl = document.createElement('div'); fsEl.className = 'fs-bg';
+  fsEl.innerHTML = panels.map((p, i) => '<div class="sl' + (i ? '' : ' on') + '"><img class="a" data-src="' + p.art + '" alt=""></div>').join('') + '<i></i>'; document.body.appendChild(fsEl);
+  const sl = $$('.sl', fsEl); let raf = 0, k0 = -1;
+  // las imágenes se cargan de a poco: la actual y las vecinas
+  const warm = (k) => { [k - 1, k, k + 1].forEach((j) => { const im = sl[j] && $('.a', sl[j]); if (im && !im.getAttribute('src')) im.setAttribute('src', im.dataset.src); }); };
+  const upd = () => { raf = 0; const k = clamp(Math.round(window.scrollY / Math.max(1, window.innerHeight)), 0, sl.length - 1); if (k === k0) return; k0 = k; warm(k); sl.forEach((s, i) => s.classList.toggle('on', i === k)); };
+  const fn = () => { if (!raf) raf = requestAnimationFrame(upd); }; window.addEventListener('scroll', fn, { passive: true }); upd();
+  return () => { window.removeEventListener('scroll', fn); fsEl.remove(); root.classList.remove('nd', 'nd-full', 'snapy'); };
 }

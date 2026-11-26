@@ -22,18 +22,25 @@ La key **nunca** forma parte del repositorio.
 | `js/api.js` | TMDB (es-MX con sinopsis en inglés de respaldo) |
 | `js/progress.js` | "Siguiente capítulo" y "Anteriormente" |
 | `js/home.js`, `detail.js`, `universe.js`, `search.js`, `settings.js` | Pantallas |
-| `js/theme.js`, `fx.js`, `css/theme.css` | Temas por título: paleta, partículas y decoración propia (The Walking Dead, Loki, WandaVision, Iron Man y un tema por género para el resto) |
-| `js/scenes.js` | Fondo vivo con escenas del propio título |
+| `js/taste.js` | Gusto: qué sugerir según tu historial |
+| `css/design.css`, `css/screens.css` | Estilos de la ficha y de las demás pantallas |
 | `js/extras.js` | Comunidad adentro de la app: tráiler (YouTube), reseñas de TMDB y artículo de Wikipedia (vía Wikidata) |
 | `data/universes.json` | Universos curados (IDs de TMDB) |
 | `tools/build-universes.mjs` | Regenera `universes.json`: `TMDB_KEY=xxxx node tools/build-universes.mjs` |
 | `sw.js` | Service worker: app y datos guardados sin conexión |
 
-## Diseño de los efectos
+## Diseño
 
-Regla: ningún efecto empieza o termina en un borde visible. Las capas a pantalla completa van fijas al viewport,
-lo que está en la portada entra por los costados o se funde con máscaras, y todo lo posible sigue el scroll.
-En Ajustes se pueden apagar o suavizar los efectos.
+Las cinco pantallas comparten un lenguaje: la imagen del título (póster sin texto de TMDB) es el fondo de toda la
+pantalla, nítida arriba y desenfocada al bajar; poco texto, una acción principal y lo demás en filas sin cajas.
+
+- **Inicio:** portadas a pantalla completa que rotan al azar. Mezclan lo que tenés en curso (Retomar, Anteriormente)
+  con sugerencias según tu gusto (Ver ficha, Mi lista, No me interesa).
+- **Universos:** un universo por pantalla; adentro, la lista arranca en "Estoy aquí".
+- **Buscar:** tendencia a pantalla completa, y al escribir la imagen del primer resultado queda de fondo.
+- **Ajustes:** filas cortas; cada una abre una hoja con el detalle.
+
+El gusto (`js/taste.js`) se calcula en el teléfono con lo que seguís, puntuaste y terminaste.
 
 ## Probar en local
 

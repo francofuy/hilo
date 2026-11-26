@@ -1,120 +1,111 @@
-// Inicio: dónde me quedé, mis universos y qué más hay conectado.
+// Inicio: portadas a pantalla completa que rotan al azar. Mezclan lo que tenés en curso (con Retomar y
+// Anteriormente) y sugerencias según tu gusto (con Ver ficha, Mi lista y No me interesa).
 import * as store from './store.js';
 import * as api from './api.js';
 import * as data from './data.js';
+import * as taste from './taste.js';
 import { nextEpisode } from './progress.js';
 import { openRecap } from './sheet.js';
-import { esc, ic, artHTML, posterCard, ring, animate, normItem, fromMeta, hueOf, img, ago, epLabel, fmtDate, parallax, $, $$ } from './ui.js';
+import { esc, ic, img, epLabel, fmtDate, hueOf, $, $$ } from './ui.js';
 
 export const tab = 'home';
-
-const sec = (title, sub, inner, i, extra) => '<div class="pad secbox rise" style="--i:' + i + '"><h2 class="sec">' + title + '</h2>' + (sub ? '<div class="secsub">' + sub + '</div>' : '') + '</div>' + inner + (extra || '');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const typeName = (t) => (t === 'tv' ? 'Serie' : 'Película');
+const route = (m) => '#/' + m.type + '/' + m.id;
+const logoOrTitle = (a, title) => (a.logo ? '<img class="lg" src="' + a.logo + '" alt="' + esc(title) + '">' : '<h2 class="dtitle nt">' + esc(title) + '</h2>');
 
 export async function mount(el) {
   const S = store.state();
   if (!S.key) { location.hash = '#/setup'; return; }
   let U; try { U = await data.load(); } catch (e) { U = { universes: [], byKey: {}, byId: {} }; }
+  const keys = (store.inProgress().length ? store.inProgress() : store.listed()).slice(0, 3);
+  const [items, fresh] = await Promise.all([
+    Promise.all(keys.map(async (k) => {
+      const m = store.meta(k), a = await api.heroAssets(m.type, m.id);
+      if (!a.poster && m.tp) a.poster = img(m.tp, 'w780'); // lo recordado sirve cuando no hay red
+      if (!a.logo && m.lg) a.logo = img(m.lg, 'w500');
+      return { k, m, a, ps: a.poster || img(m.b, 'w1280') || img(m.p, 'w780') };
+    })),
+    taste.suggestions(U, 3).catch(() => [])
+  ]);
+  if (!el.isConnected) return;
+  const root = document.documentElement;
+  root.classList.add('nd', 'nd-full');
+  const hue = items[0] ? hueOf(items[0].m.g, items[0].m.id) : 215;
+  el.style.setProperty('--h', hue); root.style.setProperty('--h', hue);
 
-  const prog = store.inProgress(), listed = store.listed();
-  const tr = [...prog, ...listed, ...store.completed()];
-  const offN = Object.keys(S.off).length;
-  const online = navigator.onLine;
-
-  /* ---- héroe ---- */
-  let hero = null, heroKey = null, kicker = 'Continuar viendo';
-  if (prog.length) { heroKey = prog[0]; hero = fromMeta(store.meta(heroKey)); }
-  else if (listed.length) { heroKey = listed[0]; hero = fromMeta(store.meta(heroKey)); kicker = 'En tu lista'; }
-  else { try { const t = await api.trending(); const r = (t.results || []).find((x) => (x.media_type === 'tv' || x.media_type === 'movie') && x.backdrop_path); if (r) { hero = normItem(r); kicker = 'Tendencia esta semana'; } } catch (e) { /* sin red */ } }
-  const hue = hero ? data.hueFor(U, hero.key, hero.g, hero.id) : 215;
-  el.style.setProperty('--h', hue);
-  document.documentElement.style.setProperty('--h', hue);
-
-  const isTv = hero && hero.type === 'tv', started = heroKey && store.countWatched(heroKey) > 0;
-  let out = '<div class="hero" id="hero" data-fade="1"><div class="hero-art">' + (hero ? artHTML(hero) : '') + '</div><div class="hero-blur"></div><div class="hero-shade"></div>' +
-    '<div class="top"><div class="brand">' + ic('thread', 22, 2) + 'Hilo</div><a class="offchip' + (online ? '' : ' warn') + '" href="#/settings">' + ic(online ? 'cloud' : 'cloudoff', 17) + '<span>' + (online ? offN + ' sin conexión' : 'Sin conexión') + '</span></a></div>';
-  if (hero) {
-    const long = hero.title.length > 22 ? ' long' : '';
-    out += '<div class="hero-in rise" style="--i:0"><div class="kick">' + kicker + '</div><h1 class="hero-title' + long + '">' + esc(hero.title) + '</h1>' +
-      '<div class="hero-ep" id="hep">' + (isTv && heroKey ? '&nbsp;' : esc((hero.type === 'tv' ? 'Serie' : 'Película') + (hero.year ? ' · ' + hero.year : ''))) + '</div>' +
-      (heroKey ? '<div class="hero-last">' + (started ? 'Te quedaste ' + ago(S.last[heroKey]) : 'Todavía no empezaste') + '</div><div class="bar"><i data-w="' + Math.max(Math.round(store.frac(heroKey) * 100), 2) + '"></i></div>' : '<div style="height:10px"></div>') +
-      '<div class="hero-btns">' + (heroKey && isTv ? '<a class="btn pri" href="#/tv/' + hero.id + '?go=next">' + ic('play', 18) + (started ? 'Retomar' : 'Empezar') + '</a>' + (started ? '<button class="btn glass" data-recap="' + heroKey + '">' + ic('prev', 19) + 'Anteriormente</button>' : '') : '<a class="btn pri" href="#/' + hero.type + '/' + hero.id + '">' + ic('play', 18) + 'Ver ficha</a>') + '</div></div>';
-  } else {
-    out += '<div class="hero-in"><div class="kick">Hilo</div><h1 class="hero-title">Tu lugar en cada historia</h1></div>';
-  }
-  out += '</div>';
-
-  if (!tr.length) out += '<div class="pad rise" style="--i:1;margin-top:18px"><div class="note">' + ic('info', 18) + '<span><b>Todavía no seguís nada.</b><br>Buscá una serie o película y tocá el marcador de la ficha para empezar a seguirla.</span></div></div>';
-
-  let i = 1;
-  /* ---- Siguiente ---- */
-  if (prog.length) {
-    out += sec('Siguiente', '', '<div class="row rise" style="--i:' + (i + 1) + '">' + prog.slice(0, 12).map((k) => {
-      const m = store.meta(k), n = fromMeta(m), h = data.hueFor(U, k, n.g, n.id);
-      return '<a class="lcard" style="--h:' + h + '" href="#/tv/' + m.id + '?go=next"><div class="lthumb">' + artHTML({ ...n, backdrop: n.backdrop }).replace('w1280', 'w780') + '<div class="lname">' + esc(m.t) + '</div><div class="bar"><i data-w="' + Math.max(Math.round(store.frac(k) * 100), 3) + '"></i></div></div><div class="lt" data-nx="' + k + '">&nbsp;</div><div class="ls">' + ago(S.last[k]) + ' · ' + store.countWatched(k) + ' de ' + (m.tot || '?') + ' episodios</div></a>';
-    }).join('') + '</div>', i++);
-  }
-  /* ---- Tu lista ---- */
-  const pend = listed.filter((k) => !prog.includes(k) && k !== heroKey);
-  if (pend.length) out += sec('Tu lista', 'Lo que guardaste para ver', '<div class="row rise" style="--i:' + (i + 1) + '">' + pend.slice(0, 20).map((k) => posterCard(fromMeta(store.meta(k)), { w: 118 })).join('') + '</div>', i++);
-
-  /* ---- Tus universos ---- */
-  const trackedU = new Set(); tr.forEach((k) => (U.byKey[k] || []).forEach((u) => trackedU.add(u)));
-  const unis = [...U.universes].sort((a, b) => (trackedU.has(b.id) ? 1 : 0) - (trackedU.has(a.id) ? 1 : 0));
-  out += sec(trackedU.size ? 'Tus universos' : 'Universos para descubrir', 'Todo lo conectado, en orden', '<div class="row rise" style="--i:' + (i + 1) + '">' + unis.slice(0, 8).map((u) => {
-    const s = data.stats(u), h = hueOf([], u.cover ? u.cover.id : 1);
-    return '<a class="ucard" style="--h:' + data.uhue(u) + '" href="#/universe/' + u.id + '">' + (u.cover ? artHTML(fromUniCover(u.cover)).replace('w1280', 'w780') : '') + '<div class="uc-in"><div><div class="uc-t">' + esc(u.title) + '</div><div class="uc-s">' + s.done + ' de ' + s.total + ' vistos' + (s.part ? ' · ' + s.part + ' en curso' : '') + '</div></div><div class="ringwrap">' + ring(s.f, 46, 4) + '<b>' + Math.round(s.f * 100) + '%</b></div></div></a>';
-  }).join('') + '</div>', i++);
-
-  /* ---- Hay más de lo que estás viendo ---- */
-  const trSet = new Set(tr); let best = null;
-  trackedU.forEach((uid) => { const u = U.byId[uid]; const miss = u.items.filter((x) => !trSet.has(x.key) && (!x.d || x.d <= store.today())); if (!best || miss.length > best.miss.length) best = { u, miss }; });
-  if (best && best.miss.length) {
-    const chips = best.miss.slice(0, 14);
-    out += sec('Hay más de lo que estás viendo', esc(best.u.title) + ' tiene ' + best.miss.length + ' títulos más conectados a la historia', '<div class="row rise" style="--i:' + (i + 1) + '">' + chips.map((x) => posterCard({ type: x.k, id: x.id, title: x.t, year: String(x.y), poster: x.p, g: [] }, { w: 118, chip: x.rl ? x.rl.split(':')[0] : best.u.title })).join('') + '</div>', i++);
-  } else if (heroKey) {
-    out += '<div id="recs"></div>';
-  }
-  out += '<div id="trend"></div>';
-  out += '<div class="pad attr rise" style="--i:' + (i + 3) + ';margin-top:34px">Datos e imágenes de <a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a>. Este producto usa la API de TMDB pero no está respaldado ni certificado por TMDB.</div>';
-
-  el.innerHTML = out;
-  animate(el);
-  const stop = parallax(el);
-
-  /* ---- relleno asíncrono ---- */
-  const fillNext = async (k, target, hero) => {
-    try {
-      const ne = await nextEpisode(k);
-      if (!el.isConnected) return;
-      let t = '';
-      if (!ne) t = hero ? 'Estás al día' : 'Estás al día';
-      else if (ne.upcoming) t = 'Próximo: ' + (ne.e ? epLabel(ne.s, ne.e) : 'T' + ne.s) + (ne.air ? ' · ' + fmtDate(ne.air) : '');
-      else t = epLabel(ne.s, ne.e) + ' — ' + ne.name;
-      target.textContent = t;
-    } catch (e) { target.textContent = e.code === 'offline' ? 'Sin conexión' : ''; }
-  };
-  if (isTv && heroKey) fillNext(heroKey, $('#hep', el), true);
-  $$('[data-nx]', el).forEach((n) => fillNext(n.dataset.nx, n, false));
-
-  if (!best || !best.miss.length) {
-    if (heroKey) {
-      const { type, id } = store.parse(heroKey);
-      api.details(type, id).then((d) => {
-        const recs = (d.recommendations && d.recommendations.results || []).filter((r) => r.poster_path).slice(0, 14);
-        if (!recs.length || !el.isConnected) return;
-        const box = $('#recs', el); if (!box) return;
-        box.innerHTML = sec('Porque seguís ' + esc(store.meta(heroKey).t), 'Recomendaciones de TMDB', '<div class="row">' + recs.map((r) => posterCard(normItem(r, type), { w: 118 })).join('') + '</div>', 0);
-      }).catch(() => {});
+  /* ---------- portadas ---------- */
+  const slidesData = taste.mixSlides(
+    items.filter((x) => x.ps).map((x) => ({ kind: 'resume', key: x.k, m: x.m, a: x.a, ps: x.ps })),
+    fresh.map((f) => ({ kind: 'new', key: f.key, f, a: f.a, ps: f.src })));
+  const slides = slidesData.map((s) => {
+    if (s.kind === 'resume') {
+      return '<div class="hm-sl" data-key="' + s.key + '"><div class="fs-in"><div class="kk">Seguir viendo</div><a href="' + route(s.m) + '?go=next">' + logoOrTitle(s.a, s.m.t) + '</a><div class="mt" data-nx="' + s.key + '">&nbsp;</div>' +
+        '<div class="pri-row"><a class="btn pri" href="' + route(s.m) + '?go=next">' + ic('play', 18) + 'Retomar</a></div>' +
+        '<div class="acts3"><button class="ab" data-recap="' + s.key + '">' + ic('prev', 24) + '<span>Anteriormente</span></button></div></div></div>';
     }
-  }
-  api.trending().then((t) => {
-    if (!el.isConnected) return;
-    const items = (t.results || []).filter((r) => (r.media_type === 'tv' || r.media_type === 'movie') && r.poster_path).slice(0, 16);
-    $('#trend', el).innerHTML = sec('Tendencias de la semana', '', '<div class="row">' + items.map((r) => posterCard(normItem(r), { w: 118 })).join('') + '</div>', 0);
-  }).catch(() => {});
+    const f = s.f, href = '#/' + f.type + '/' + f.id;
+    return '<div class="hm-sl" data-key="' + s.key + '"><div class="fs-in"><div class="kk">' + esc(f.reason) + '</div><a href="' + href + '">' + logoOrTitle(f.a, f.info.t) + '</a><div class="mt">' + esc([typeName(f.type), f.info.y].filter(Boolean).join(' · ')) + '</div>' +
+      '<div class="pri-row"><a class="btn pri" href="' + href + '">Ver ficha</a></div>' +
+      '<div class="acts3"><button class="ab" data-add="' + s.key + '">' + ic('mark', 24) + '<span>Mi lista</span></button><button class="ab" data-hide="' + s.key + '"><span class="x">' + ic('plus', 24) + '</span><span>No me interesa</span></button></div></div></div>';
+  }).join('');
 
-  el.addEventListener('click', (e) => { const b = e.target.closest('[data-recap]'); if (b) openRecap(b.dataset.recap); });
-  return stop;
+  /* ---------- debajo: universos ---------- */
+  const uniItems = U.universes.map((u) => ({ u, s: data.stats(u) })).sort((a, b) => (b.s.f > 0 ? 1 : 0) - (a.s.f > 0 ? 1 : 0) || b.s.f - a.s.f).slice(0, 6);
+  const uniRow = '<h2 class="hm-h">Universos</h2><div class="hm-row">' + uniItems.map(({ u, s }) => '<a class="hm-u" href="#/universe/' + u.id + '"><div class="th">' + (u.cover && u.cover.b ? '<img src="' + img(u.cover.b, 'w780') + '" alt="" loading="lazy">' : '') + '</div><span>' + esc(u.title) + '</span><em>' + (s.done || s.part ? s.done + ' de ' + s.total : s.total + ' títulos') + '</em></a>').join('') + '</div>';
+  const empty = '<div class="hm-empty"><b>Todavía no hay nada para mostrar</b>Buscá una serie o película y tocá Seguir para empezar.</div>';
+  const attr = '<p class="hm-attr">Datos e imágenes de <a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a>. Este producto usa la API de TMDB pero no está respaldado ni certificado por TMDB.</p>';
+  const brand = '<div class="hm-brand">' + ic('thread', 20, 2) + '<span>Hilo</span>' + (navigator.onLine ? '' : '<em class="off">Sin conexión</em>') + '</div>';
+
+  el.innerHTML = '<div class="hm-hero">' + brand + (slidesData.length > 1 ? '<div class="hm-dots">' + slidesData.map((_, i) => '<i class="' + (i ? '' : 'on') + '"></i>').join('') + '</div>' : '') +
+    '<div class="hm-pager" id="pg">' + (slides || '<div class="hm-sl"><div class="fs-in">' + empty + '</div></div>') + '</div></div><div class="pad hm-body">' + uniRow + attr + '</div>';
+
+  /* ---------- fondo de pantalla completa ---------- */
+  const fsEl = document.createElement('div'); fsEl.className = 'fs-bg';
+  fsEl.innerHTML = slidesData.map((x, i) => '<div class="sl' + (i ? '' : ' on') + '" data-key="' + x.key + '"><img class="a" src="' + x.ps + '" alt=""><img class="b" src="' + x.ps + '" alt=""></div>').join('') + '<i></i>';
+  document.body.appendChild(fsEl);
+  let sl = $$('.sl', fsEl), dots = $$('.hm-dots i', el); const pg = $('#pg', el);
+  let act = 0, raf = 0, idle = 0;
+  const upd = () => {
+    raf = 0; const w = pg.clientWidth || 1; act = clamp(Math.round(pg.scrollLeft / w), 0, Math.max(0, sl.length - 1));
+    const hero = $('.hm-hero', el), p = clamp(window.scrollY / Math.max(1, (hero ? hero.offsetHeight : 600) * 0.62), 0, 1);
+    sl.forEach((s, i) => { s.classList.toggle('on', i === act); $('.b', s).style.opacity = i === act ? p : 0; $('.a', s).style.transform = 'scale(' + (1 + (i === act ? p * 0.06 : 0)) + ')'; });
+    dots.forEach((d, i) => d.classList.toggle('on', i === act));
+  };
+  const fn = () => { if (!raf) raf = requestAnimationFrame(upd); };
+  window.addEventListener('scroll', fn, { passive: true }); pg.addEventListener('scroll', fn, { passive: true }); upd();
+
+  // cambia sola cada pocos segundos; se detiene cuando tocás o cuando la portada no se ve
+  const touch = () => { idle = Date.now() + 14000; };
+  pg.addEventListener('pointerdown', touch); pg.addEventListener('touchstart', touch, { passive: true });
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const timer = reduce ? 0 : setInterval(() => {
+    if (document.hidden || Date.now() < idle || window.scrollY > 160 || sl.length < 2) return;
+    pg.scrollTo({ left: ((act + 1) % sl.length) * pg.clientWidth, behavior: 'smooth' });
+  }, 7500);
+
+  /* ---------- acciones ---------- */
+  el.addEventListener('click', (e) => {
+    const rc = e.target.closest('[data-recap]'); if (rc) { e.preventDefault(); openRecap(rc.dataset.recap); return; }
+    const add = e.target.closest('[data-add]'), hide = e.target.closest('[data-hide]');
+    if (add) {
+      const key = add.dataset.add, f = fresh.find((x) => x.key === key); if (!f) return;
+      const on = !store.isFollowed(key);
+      store.rememberItem({ k: f.type, id: f.id, t: f.info.t, p: f.info.p, b: f.info.b, d: '', y: f.info.y, eps: 0 }); store.follow(key, on);
+      add.classList.toggle('on', on); $('span', add).textContent = on ? 'En tu lista' : 'Mi lista'; add.firstElementChild.outerHTML = ic(on ? 'markok' : 'mark', 24); touch();
+    }
+    if (hide) {
+      const key = hide.dataset.hide; taste.dismiss(key);
+      const s = $('.hm-sl[data-key="' + key + '"]', el), bg = $('.sl[data-key="' + key + '"]', fsEl);
+      if (s) s.remove(); if (bg) bg.remove();
+      sl = $$('.sl', fsEl); const di = $$('.hm-dots i', el); if (di.length) di[di.length - 1].remove(); dots = $$('.hm-dots i', el);
+      pg.scrollTo({ left: 0, behavior: 'instant' }); upd();
+    }
+  });
+
+  /* "T2 · E5 — título" del próximo capítulo */
+  $$('[data-nx]', el).forEach(async (n) => {
+    try { const ne = await nextEpisode(n.dataset.nx); if (!el.isConnected) return; n.textContent = !ne ? 'Estás al día' : ne.upcoming ? 'Próximo: ' + (ne.air ? fmtDate(ne.air) : 'sin fecha') : epLabel(ne.s, ne.e) + ' — ' + ne.name; } catch (e) { n.textContent = e.code === 'offline' ? 'Sin conexión' : ''; }
+  });
+  return () => { window.removeEventListener('scroll', fn); clearInterval(timer); fsEl.remove(); root.classList.remove('nd', 'nd-full'); };
 }
-
-export function fromUniCover(c) { return { poster: c.p, backdrop: c.b }; }

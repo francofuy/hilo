@@ -12,13 +12,7 @@ export const tab = null;
 const q = encodeURIComponent;
 const BASED = { 'based on comic': 'Basada en un cómic', 'based on comic book': 'Basada en un cómic', 'based on graphic novel': 'Basada en una novela gráfica', 'based on novel or book': 'Basada en una novela o libro', 'based on novel': 'Basada en una novela', 'based on young adult novel': 'Basada en una novela juvenil', 'based on manga': 'Basada en un manga', 'based on video game': 'Basada en un videojuego', 'based on true story': 'Basada en hechos reales', 'based on tv series': 'Basada en una serie', 'based on cartoon': 'Basada en una caricatura', 'based on short story': 'Basada en un cuento', 'based on play or musical': 'Basada en una obra de teatro', 'based on anime': 'Basada en un anime' };
 
-// Logo oficial y póster sin texto que TMDB ya entrega con cada título.
-function heroAssetsOf(d) {
-  const im = d.images || {}, rank = { es: 0, en: 1 };
-  const logos = (im.logos || []).filter((l) => /\.png$/.test(l.file_path)).sort((a, b) => (rank[a.iso_639_1] ?? 2) - (rank[b.iso_639_1] ?? 2) || (b.vote_average || 0) - (a.vote_average || 0));
-  const posters = (im.posters || []).filter((p) => p.iso_639_1 == null && p.width >= 1000).sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0));
-  return { logo: logos[0] ? img(logos[0].file_path, 'w500') : '', poster: posters[0] ? img(posters[0].file_path, 'w780') : '' };
-}
+const heroAssetsOf = (d) => api.assetsFrom(d.images);
 function scenesOf(d) {
   const bd = (d.images && d.images.backdrops) || [];
   return bd.filter((b) => b.iso_639_1 == null && b.aspect_ratio > 1.7 && b.aspect_ratio < 1.85 && b.file_path !== d.backdrop_path)
