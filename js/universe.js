@@ -11,7 +11,8 @@ const locked = (i) => !!(i.d && i.d > store.today());
 const frac = (i) => store.frac(i.key, i.eps);
 const hereOf = (ord) => ord.find((i) => !locked(i) && frac(i) < 0.999);
 function stats(items) { const rel = items.filter((i) => !locked(i)); let done = 0, part = 0, sum = 0; rel.forEach((i) => { const f = frac(i); sum += f; if (f >= 0.999) done++; else if (f > 0) part++; }); return { done, part, total: rel.length, f: rel.length ? sum / rel.length : 0 }; }
-const meta = (i) => (locked(i) ? 'Estreno ' + fmtDate(i.d) : [i.k === 'movie' ? 'Película' : 'Serie', i.rl || i.y].filter(Boolean).join(' · '));
+const meta = (i, role) => (locked(i) ? 'Estreno ' + fmtDate(i.d) : [i.k === 'movie' ? 'Película' : 'Serie', role ? role.label : (i.rl || ''), i.y].filter(Boolean).join(' · '));
+const firstSentence = (t) => { const m = /^.*?[.!?](\s|$)/.exec(t || ''); return (m ? m[0] : t || '').trim(); };
 const checkSvg = ic('check', 16, 3);
 const goBack = () => { if (history.length > 1) history.back(); else location.hash = '#/universes'; };
 
@@ -29,8 +30,8 @@ async function setDone(i, on) {
 
 /* ---------- hoja rápida de un título del universo ---------- */
 function openItem(U, i, ord, refresh) {
-  const done = frac(i) >= 0.999;
-  const s = openSheet('<div class="us"><div class="us-h">' + (i.p ? '<img src="' + img(i.p, 'w342') + '" alt="">' : '<span></span>') + '<div><h3>' + esc(i.t) + '</h3><div class="usm">' + esc(meta(i)) + '</div></div></div><p class="us-s" id="uss">&nbsp;</p>' +
+  const done = frac(i) >= 0.999, role = data.roleOf(U, i.key), note = data.noteOf(U, i.key);
+  const s = openSheet('<div class="us"><div class="us-h">' + (i.p ? '<img src="' + img(i.p, 'w342') + '" alt="">' : '<span></span>') + '<div><h3>' + esc(i.t) + '</h3><div class="usm">' + esc(meta(i, role)) + '</div></div></div>' + (note ? '<p class="us-n">' + esc(note) + '</p>' : '') + '<p class="us-s" id="uss">&nbsp;</p>' +
     '<a class="btn pri" href="#/' + i.k + '/' + i.id + '" data-close style="width:100%;margin-top:6px">Ver ficha</a>' +
     (locked(i) ? '' : '<button class="btn glass" data-act="upto" style="width:100%;margin-top:8px">Marcar todo hasta acá</button><button class="btn glass" data-act="tog" style="width:100%;margin-top:8px">' + (done ? 'Marcar como no visto' : 'Marcar como visto') + '</button>') + '</div>', U.hue);
   api.details(i.k, i.id).then((d) => { const p = $('#uss', s.el); if (p) p.textContent = d.overview || 'Sin sinopsis disponible.'; }).catch((e) => { const p = $('#uss', s.el); if (p) p.textContent = e.code === 'offline' ? 'Sin conexión: la sinopsis no está disponible ahora.' : 'Sin sinopsis disponible.'; });
@@ -45,12 +46,21 @@ function openItem(U, i, ord, refresh) {
   });
 }
 
+/* ---------- hoja "Cómo verlo": los órdenes disponibles y por qué ---------- */
+function openOrders(U, cur, pick) {
+  const mo = data.metaOf(U);
+  const opts = mo.opts.map((o) => '<button class="og' + (o.id === cur ? ' on' : '') + '" data-o="' + o.id + '"><div><b>' + o.label + (o.rec ? '<em>Recomendado</em>' : '') + '</b><small>' + esc(o.why) + '</small></div>' + ic('check', 18, 2.6) + '</button>').join('');
+  const no = mo.no.map((o) => '<div class="og no"><div><b>' + o.label + '<em class="gr">No disponible</em></b><small>' + esc(o.why) + '</small></div></div>').join('');
+  const s = openSheet('<h3>Cómo verlo</h3><div class="ssub">Elegí el orden. Las recomendaciones están armadas a mano y pueden discutirse.</div><div class="ogs">' + opts + no + '</div>', U.hue);
+  s.el.addEventListener('click', (e) => { const b = e.target.closest('[data-o]'); if (!b) return; pick(b.dataset.o); s.close(); });
+}
+
 /* ---------- detalle de un universo ---------- */
 export async function mountCuratedUniverse(el, { id }) {
   let D; try { D = await data.load(); } catch (e) { el.innerHTML = '<div class="empty" style="padding-top:140px"><b>No pude cargar los universos</b>Probá de nuevo en un rato.</div>'; return; }
   const u = D.byId[id];
   if (!u) { el.innerHTML = '<div class="empty" style="padding-top:140px"><b>Universo no encontrado</b><a class="btn glass" href="#/universes">Ver universos</a></div>'; return; }
-  return render(el, { id: u.id, title: u.title, sub: u.sub, modes: u.modes, items: u.items, cover: u.cover, hue: data.uhue(u) });
+  return render(el, { id: u.id, title: u.title, sub: u.sub, modes: u.modes, meta: u.meta, items: u.items, cover: u.cover, hue: data.uhue(u) });
 }
 
 export async function mountCollection(el, { id }) {
@@ -60,39 +70,44 @@ export async function mountCollection(el, { id }) {
   const items = (c.parts || []).map((p) => ({ key: 'movie:' + p.id, k: 'movie', id: p.id, t: p.title, y: (p.release_date || '').slice(0, 4), d: p.release_date || null, p: p.poster_path, b: p.backdrop_path }))
     .sort((a, b) => (a.d || '9').localeCompare(b.d || '9'));
   const cover = items.find((i) => i.b) || items[0];
-  return render(el, { id: 'c' + id, title: c.name.replace(/ (Collection|Colección)$/i, ''), sub: 'Colección de TMDB · en orden de estreno', modes: false, items, cover, hue: cover ? hueOf([], cover.id) : 215 });
+  return render(el, { id: 'c' + id, title: c.name.replace(/ (Collection|Colección)$/i, ''), sub: 'Colección de TMDB · en orden de estreno', modes: false, meta: null, items, cover, hue: cover ? hueOf([], cover.id) : 215 });
 }
 
 async function render(el, U) {
   const root = document.documentElement;
-  let mode = U.modes ? 'chrono' : 'release', pend = false, openPrev = false;
+  const S = store.state(); S.uorder = S.uorder || {};
+  let mode = data.prefOrder(U, S.uorder[U.id]), pend = false, openPrev = false;
   const art = await artOf(U.cover); if (!el.isConnected) return;
   root.classList.add('nd', 'nd-full'); el.style.setProperty('--h', U.hue); root.style.setProperty('--h', U.hue);
-  const order = () => data.ordered(U, mode === 'chrono' ? 'chrono' : 'release');
+  const order = () => data.sequence(U, mode);
   const soon = () => U.items.filter(locked).sort((a, b) => a.d.localeCompare(b.d))[0];
 
-  el.innerHTML = '<div id="top"></div><div id="body"></div><p class="hm-attr pad" style="margin-top:20px">' + (U.modes ? 'El orden de la historia es una curaduría y puede discutirse.' : '') + '</p>';
+  el.innerHTML = '<div id="top"></div><div id="body"></div><p class="hm-attr pad" style="margin-top:20px">' + (U.meta ? 'Los órdenes y los tipos de historia son una curaduría y pueden discutirse.' : '') + '</p>';
   const topEl = $('#top', el), bodyEl = $('#body', el);
   const back = '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button>';
 
   const row = (i, here) => {
-    const f = frac(i), lk = locked(i);
+    const f = frac(i), lk = locked(i), role = data.roleOf(U, i.key);
     return '<div class="un-row' + (f >= 0.999 ? ' done' : '') + (here ? ' here' : '') + '" data-key="' + i.key + '"><button class="un-it" data-a="item" data-key="' + i.key + '">' + (i.p ? '<img src="' + img(i.p, 'w185') + '" alt="" loading="lazy">' : '<span class="np"></span>') +
-      '<div><b>' + esc(i.t) + '</b><small>' + esc(meta(i)) + (i.k === 'tv' && f > 0 && f < 0.999 ? ' · ' + store.countWatched(i.key) + ' / ' + (((store.meta(i.key) || {}).tot) || i.eps || '?') : '') + '</small>' + (here ? '<em>Estoy aquí</em>' : '') + '</div></button>' +
+      '<div><b>' + esc(i.t) + '</b><small>' + esc(meta(i, role)) + (i.k === 'tv' && f > 0 && f < 0.999 ? ' · ' + store.countWatched(i.key) + ' / ' + (((store.meta(i.key) || {}).tot) || i.eps || '?') : '') + '</small>' + (here ? '<em>Estoy aquí</em>' : '') + '</div></button>' +
       (lk ? '<span class="un-ck lk">' + ic('lock', 16, 2) + '</span>' : '<button class="un-ck" data-a="ck" data-key="' + i.key + '" aria-label="' + (f >= 0.999 ? 'Marcar como no visto' : 'Marcar como visto') + '">' + (f >= 0.999 ? checkSvg : '') + '</button>') + '</div>';
   };
 
+  // en "Por tipo de historia" cada grupo lleva su título
+  const rows = (arr, here) => { let last = null; return arr.map((i) => { const r = mode === 'role' ? data.roleOf(U, i.key) : null; const h = r && r.id !== last ? '<h3 class="un-gh">' + r.label + '</h3>' : ''; last = r ? r.id : last; return h + row(i, i === here); }).join(''); };
   function draw() {
     const ord = order(), here = hereOf(ord), s = stats(U.items), sn = soon(), dd = sn ? daysUntil(sn.d) : null;
     const mt = s.done + ' de ' + s.total + ' vistos' + (sn && dd != null && dd >= 0 ? ' · ' + (dd === 0 ? 'hoy' : dd === 1 ? 'mañana' : 'en ' + dd + ' días') + ' llega ' + sn.t : '');
     const cont = here ? '<div class="pri-row"><button class="btn pri" data-a="cont">' + ic('play', 18) + '<span class="ell">Seguir · ' + esc(here.t) + '</span></button></div>' : '<div class="pri-row"><button class="btn pri" disabled>Al día</button></div>';
-    const modeBtn = U.modes ? '<button class="ab" data-a="mode">' + ic('uni', 24) + '<span>' + (mode === 'chrono' ? 'Orden de la historia' : 'Por estreno') + '</span></button>' : '';
+    const modeBtn = '<button class="ab" data-a="mode">' + ic('uni', 24) + '<span>' + data.ORDER_LABEL[mode] + '</span></button>';
+    const mo = data.metaOf(U), curOpt = mo.opts.find((o) => o.id === mode) || mo.opts[0];
     const pendBtn = '<button class="ab' + (pend ? ' on' : '') + '" data-a="pend">' + ic('check', 24) + '<span>' + (pend ? 'Solo pendientes' : 'Todos') + '</span></button>';
     const shown = pend ? ord.filter((i) => frac(i) < 0.999) : ord;
     const hi = here ? shown.indexOf(here) : -1;
     topEl.innerHTML = '<div class="un-hero">' + back + '<div class="fs-in"><div class="kk">' + (U.id[0] === 'c' && /^c\d+$/.test(U.id) ? 'Colección' : 'Universo') + '</div><h1 class="un-title">' + esc(U.title) + '</h1><div class="mt">' + esc(mt) + '</div>' + cont + '<div class="acts3">' + modeBtn + pendBtn + '</div></div></div>';
     const before = hi > 0 ? shown.slice(0, hi) : [], after = hi >= 0 ? shown.slice(hi) : shown;
-    bodyEl.innerHTML = '<div class="pad un-list">' + (before.length ? '<button class="un-prev" data-a="prev"><span>' + (openPrev ? 'Ocultar' : 'Ver') + ' los ' + before.length + ' anteriores</span>' + ic('chev', 16) + '</button>' + (openPrev ? before.map((i) => row(i, false)).join('') : '') : '') + after.map((i) => row(i, i === here)).join('') + '</div>';
+    bodyEl.innerHTML = '<div class="pad un-list"><button class="un-why" data-a="mode"><span>' + (curOpt.rec ? '<b>Orden recomendado.</b> ' : '<b>' + curOpt.label + '.</b> ') + esc(firstSentence(curOpt.why)) + '</span>' + ic('chev', 16) + '</button>' +
+      (before.length ? '<button class="un-prev" data-a="prev"><span>' + (openPrev ? 'Ocultar' : 'Ver') + ' los ' + before.length + ' anteriores</span>' + ic('chev', 16) + '</button>' + (openPrev ? rows(before, null) : '') : '') + rows(after, here) + '</div>';
   }
   draw();
 
@@ -105,7 +120,7 @@ async function render(el, U) {
   el.addEventListener('click', async (e) => {
     const a = e.target.closest('[data-a]'); if (!a) return; const act = a.dataset.a, ord = order();
     if (act === 'back') return goBack();
-    if (act === 'mode') { mode = mode === 'chrono' ? 'release' : 'chrono'; return draw(); }
+    if (act === 'mode') return openOrders(U, mode, (id) => { mode = id; S.uorder[U.id] = id; store.save(); draw(); });
     if (act === 'pend') { pend = !pend; return draw(); }
     if (act === 'prev') { openPrev = !openPrev; return draw(); }
     const i = U.items.find((x) => x.key === a.dataset.key);
@@ -121,7 +136,7 @@ export async function mountList(el) {
   if (!store.state().key) { location.hash = '#/setup'; return; }
   let D; try { D = await data.load(); } catch (e) { D = { universes: [], byKey: {} }; }
   const S = store.state(), root = document.documentElement;
-  const panels = D.universes.map((u) => ({ href: '#/universe/' + u.id, title: u.title, sub: u.sub, here: hereOf(data.ordered(u, 'chrono')), s: stats(u.items), cover: u.cover, hue: data.uhue(u) }));
+  const panels = D.universes.map((u) => ({ href: '#/universe/' + u.id, title: u.title, sub: u.sub, here: hereOf(data.sequence(u, data.prefOrder(u, (S.uorder || {})[u.id]))), s: stats(u.items), cover: u.cover, hue: data.uhue(u) }));
   // colecciones de TMDB que se detectan solas (películas que seguís y tienen secuelas)
   const known = new Set(); D.universes.forEach((u) => u.items.forEach((i) => known.add(i.key)));
   const colls = {};

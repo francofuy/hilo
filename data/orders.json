@@ -1,0 +1,237 @@
+{
+ "marvel": {
+  "rec": "release",
+  "release": {
+   "why": "Es el orden en que Marvel fue contando la historia, y cada título da por sabido lo anterior. Es la mejor forma de verla por primera vez: no te adelanta nada."
+  },
+  "story": {
+   "why": "Sigue las fechas dentro del universo: arranca en los años 40 con el Capitán América y avanza hasta lo último. Sirve para repasar si ya viste todo; para empezar mezcla épocas y revela cosas que en el orden de estreno llegan más tarde."
+  },
+  "notes": {
+   "movie:1771": "Transcurre en los años 40.",
+   "tv:61550": "Sigue a Peggy Carter en 1946 y 1947, aunque se estrenó en 2015.",
+   "movie:299537": "Transcurre en 1995, antes de Iron Man, aunque se estrenó en 2019.",
+   "movie:497698": "Se estrenó en 2021, pero ocurre poco después de Civil War.",
+   "tv:84958": "Parte del Loki de 2012 que escapa con el Teseracto en Endgame."
+  }
+ },
+ "twd": {
+  "rec": "release",
+  "release": {
+   "why": "Es el orden de estreno: primero la serie original y después las demás. Todo lo que continúa su historia ocurre después de su final, así que conviene haberla terminado antes. Una excepción práctica: World Beyond antes de The Ones Who Live, que retoma lo que se cuenta ahí."
+  },
+  "no": {
+   "story": "Fear the Walking Dead ocurre al mismo tiempo que la serie original, y World Beyond cuenta otra región: no hay una línea de tiempo única que las ordene de punta a punta."
+  },
+  "roles": {
+   "tv:1402": "main",
+   "tv:62286": "parallel",
+   "tv:94305": "spinoff",
+   "tv:136248": "anthology",
+   "tv:194583": "sequel",
+   "tv:211684": "sequel",
+   "tv:206586": "sequel"
+  },
+  "notes": {
+   "tv:62286": "Empieza al comienzo del brote, en Los Ángeles. Transcurre en paralelo a la serie original.",
+   "tv:94305": "Pasa unos diez años después del brote. Muestra a la CRM, el grupo que retoma The Ones Who Live.",
+   "tv:136248": "Historias sueltas: se puede ver en cualquier momento.",
+   "tv:194583": "Maggie y Negan en Nueva York, después del final de la serie original.",
+   "tv:211684": "Daryl llega a Francia; su historia sigue después de la serie original.",
+   "tv:206586": "Cuenta qué pasó con Rick y Michonne tras dejar la serie original."
+  }
+ },
+ "starwars": {
+  "rec": "release",
+  "release": {
+   "why": "Empezás por la trilogía original, como se estrenó. Las precuelas y las series cuentan cosas anteriores, pero conviene conocer a los personajes antes de ver cómo empezaron."
+  },
+  "story": {
+   "why": "Sigue las fechas dentro de la saga, de La amenaza fantasma en adelante, con las series intercaladas. Va bien para repasar; para empezar, te adelanta giros importantes de la trilogía original."
+  },
+  "roles": {
+   "movie:1893": "main",
+   "movie:1894": "main",
+   "tv:4194": "spinoff",
+   "movie:1895": "main",
+   "tv:105971": "spinoff",
+   "movie:348350": "spinoff",
+   "tv:92830": "spinoff",
+   "tv:83867": "spinoff",
+   "movie:330459": "spinoff",
+   "tv:60554": "spinoff",
+   "movie:11": "main",
+   "movie:1891": "main",
+   "movie:1892": "main",
+   "tv:82856": "sequel",
+   "tv:115036": "sequel",
+   "tv:114461": "sequel",
+   "movie:140607": "main",
+   "movie:181808": "main",
+   "movie:181812": "main"
+  },
+  "notes": {
+   "tv:4194": "Transcurre entre El ataque de los clones y La venganza de los Sith.",
+   "tv:105971": "Empieza justo después de La venganza de los Sith.",
+   "movie:348350": "Transcurre unos diez años antes de Una nueva esperanza.",
+   "tv:92830": "Transcurre unos diez años después de La venganza de los Sith.",
+   "tv:83867": "Cuenta los años previos a Rogue One.",
+   "movie:330459": "Cuenta el robo de los planos de la Estrella de la Muerte, justo antes de Una nueva esperanza.",
+   "tv:60554": "Transcurre en los años previos a Una nueva esperanza.",
+   "tv:82856": "Transcurre unos cinco años después de El retorno del Jedi."
+  }
+ },
+ "breakingbad": {
+  "rec": "release",
+  "release": {
+   "why": "Primero Breaking Bad, después Better Call Saul y El Camino. Better Call Saul da por sabido el mundo de Breaking Bad y muestra cosas que ya conocés. Si querés cerrar la historia de Walter y Jesse enseguida, mirá El Camino justo después de la serie."
+  },
+  "no": {
+   "story": "Better Call Saul empieza antes de Breaking Bad, pero sus últimas temporadas ocurren durante y después de ella: las dos historias se mezclan y no entran en una sola línea."
+  },
+  "roles": {
+   "tv:60059": "prequel",
+   "tv:1396": "main",
+   "movie:559969": "epilogue"
+  },
+  "notes": {
+   "tv:60059": "Empieza antes de Breaking Bad y termina después de ella. Conviene verla al final.",
+   "movie:559969": "Continúa justo donde termina Breaking Bad."
+  }
+ },
+ "got": {
+  "rec": "release",
+  "release": {
+   "why": "Primero Juego de Tronos, que presenta el mundo. La casa del dragón y El caballero de los Siete Reinos son precuelas que cuentan cosas de la historia de los Targaryen que en la serie original aparecen como misterio."
+  },
+  "story": {
+   "why": "Sigue las fechas dentro de Poniente: La casa del dragón sucede unos 170 años antes de Juego de Tronos y El caballero de los Siete Reinos unos 90 años antes. Es un buen repaso, pero para empezar revela de antemano cosas que Juego de Tronos cuenta como misterio.",
+   "keys": [
+    "tv:94997",
+    "tv:224372",
+    "tv:1399"
+   ]
+  },
+  "roles": {
+   "tv:224372": "spinoff",
+   "tv:94997": "prequel",
+   "tv:1399": "main"
+  },
+  "notes": {
+   "tv:224372": "Sigue a Dunk y Egg, unos 90 años antes de Juego de Tronos.",
+   "tv:94997": "Cuenta la guerra civil Targaryen, unos 170 años antes de Juego de Tronos."
+  }
+ },
+ "wizarding": {
+  "rec": "release",
+  "release": {
+   "why": "Primero Harry Potter, que presenta el mundo mágico, y después Animales fantásticos, que transcurre décadas antes. Animales fantásticos da por sabidas cosas que Harry Potter explica."
+  },
+  "story": {
+   "why": "Empieza con Animales fantásticos, que ocurre en los años 20 y 30, y sigue con Harry Potter, en los 90. Va bien para repasar; para empezar, Harry Potter te presenta el mundo antes."
+  },
+  "roles": {
+   "movie:259316": "prequel",
+   "movie:338952": "prequel",
+   "movie:338953": "prequel",
+   "movie:671": "main",
+   "movie:672": "main",
+   "movie:673": "main",
+   "movie:674": "main",
+   "movie:675": "main",
+   "movie:767": "main",
+   "movie:12444": "main",
+   "movie:12445": "main"
+  }
+ },
+ "middleearth": {
+  "rec": "release",
+  "release": {
+   "why": "Primero la trilogía de El Señor de los Anillos, que presenta la Tierra Media, y después El Hobbit y las historias anteriores. Esas dan por sabido el mundo y se disfrutan más si ya lo conocés."
+  },
+  "story": {
+   "why": "Sigue la línea de tiempo: Los anillos de poder (miles de años antes), La guerra de los Rohirrim, El Hobbit y por último El Señor de los Anillos. Es un buen repaso; para empezar, te cuenta los orígenes antes de conocer a los personajes.",
+   "keys": [
+    "tv:84773",
+    "movie:839033",
+    "movie:49051",
+    "movie:57158",
+    "movie:122917",
+    "movie:120",
+    "movie:121",
+    "movie:122"
+   ]
+  },
+  "roles": {
+   "tv:84773": "prequel",
+   "movie:49051": "prequel",
+   "movie:57158": "prequel",
+   "movie:122917": "prequel",
+   "movie:120": "main",
+   "movie:121": "main",
+   "movie:122": "main",
+   "movie:839033": "spinoff"
+  },
+  "notes": {
+   "tv:84773": "Transcurre miles de años antes de El Hobbit, en la Segunda Edad.",
+   "movie:839033": "Cuenta la historia de Helm Mano de Martillo, unos 180 años antes de la trilogía."
+  }
+ },
+ "dune": {
+  "rec": "release",
+  "release": {
+   "why": "Primero las películas, que presentan el mundo de Dune, y después la serie, que cuenta sus orígenes. La serie se entiende mejor si ya conocés las ideas y los nombres de las películas."
+  },
+  "story": {
+   "why": "Empieza con Dune: Prophecy, que cuenta los orígenes de las Bene Gesserit miles de años antes, y sigue con las películas. Va bien para repasar; para empezar, las películas presentan el mundo."
+  },
+  "roles": {
+   "tv:90228": "prequel",
+   "movie:438631": "main",
+   "movie:693134": "main"
+  },
+  "notes": {
+   "tv:90228": "Transcurre unos 10.000 años antes de las películas."
+  }
+ },
+ "theboys": {
+  "rec": "release",
+  "release": {
+   "why": "Primero The Boys y después Gen V, que cuenta el mismo mundo desde una universidad de superhéroes."
+  },
+  "no": {
+   "story": "Gen V se intercala con las temporadas de The Boys en vez de ir toda antes o toda después, así que un orden por serie no refleja la historia."
+  },
+  "roles": {
+   "tv:76479": "main",
+   "tv:205715": "spinoff"
+  },
+  "notes": {
+   "tv:205715": "Conviene verla entre la tercera y la cuarta temporada de The Boys: la cuarta retoma lo que pasa acá."
+  }
+ },
+ "alien": {
+  "rec": "release",
+  "release": {
+   "why": "Empezás por Alien y sus secuelas, como se estrenaron. Las precuelas explican el origen de la criatura y se disfrutan más si ya la conocés."
+  },
+  "story": {
+   "why": "Sigue la línea de tiempo: Prometheus, Covenant y Alien: Earth explican los orígenes antes de la película original. Es un buen repaso, pero para empezar te revela el origen de lo que en Alien es un misterio."
+  },
+  "roles": {
+   "movie:70981": "prequel",
+   "movie:126889": "prequel",
+   "tv:157239": "prequel",
+   "movie:348": "main",
+   "movie:945961": "spinoff",
+   "movie:679": "main",
+   "movie:8077": "main",
+   "movie:8078": "main"
+  },
+  "notes": {
+   "movie:70981": "Transcurre unas tres décadas antes de Alien.",
+   "tv:157239": "Transcurre unos dos años antes de Alien.",
+   "movie:945961": "Ocurre entre Alien y Aliens."
+  }
+ }
+}

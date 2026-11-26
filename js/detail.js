@@ -135,11 +135,11 @@ export async function mount(el, { type, id, query }) {
       o += '<a class="st-r un-link" href="#/universe/' + u.id + '"><span class="l">Parte de ' + esc(u.title) + '</span><span class="v">' + s.done + ' de ' + s.total + '</span>' + ic('chev', 16) + '</a>';
       if (ix === 0) {
         // tira de pósters en orden, centrada en este título
-        const ord = data.ordered(u, 'chrono'), i = ord.findIndex((x) => x.key === k);
+        const pref = data.prefOrder(u, (S.uorder || {})[u.id]), ord = data.sequence(u, pref), i = ord.findIndex((x) => x.key === k);
         if (i > -1 && ord.length > 1) {
           const from = Math.max(0, i - 2), to = Math.min(ord.length, i + 5);
-          o += '<div class="sub">' + (u.modes ? 'En el orden de la historia' : 'Series conectadas') + '</div><div class="un-strip" id="strip">' + ord.slice(from, to).map((x, n) => {
-            const j = from + n, here = j === i, cap = here ? 'Esta ficha' : j === i - 1 ? 'Antes' : j === i + 1 ? 'Después' : String(x.y || '');
+          o += '<div class="sub">' + data.ORDER_LABEL[pref] + (pref === data.metaOf(u).rec ? ' · recomendado' : '') + '</div><div class="un-strip" id="strip">' + ord.slice(from, to).map((x, n) => {
+            const j = from + n, here = j === i, cap = here ? 'Esta ficha' : j === i - 1 ? 'Antes' : j === i + 1 ? 'Después' : (data.roleOf(u, x.key) ? data.roleOf(u, x.key).label : String(x.y || ''));
             return '<a class="un-pc' + (here ? ' here' : '') + (store.isDone(x.key, x.eps) ? ' done' : '') + '" href="#/' + x.k + '/' + x.id + '"><span class="im">' + (x.p ? '<img src="' + img(x.p, 'w185') + '" alt="">' : '') + (store.isDone(x.key, x.eps) ? '<u>' + ic('check', 14, 3) + '</u>' : '') + '</span><b>' + esc(x.t) + '</b><small>' + esc(cap) + '</small></a>';
           }).join('') + '</div>';
         }
