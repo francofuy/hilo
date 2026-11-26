@@ -132,15 +132,21 @@ export async function mount(el, { type, id, query }) {
     const uids = U.byKey[k] || [];
     uids.forEach((uid, ix) => {
       const u = U.byId[uid], s = data.stats(u);
-      o += '<a class="pcard" href="#/universe/' + u.id + '" style="--h:' + data.uhue(u) + '"><div class="poster">' + (u.cover && u.cover.p ? '<img class="ld" src="' + img(u.cover.p, 'w185') + '" alt="">' : '') + '</div><div><small>Parte de</small><b>' + esc(u.title) + '</b><i>' + s.done + ' de ' + s.total + ' vistos</i></div><div class="ringwrap">' + ring(s.f, 40, 4) + '<b>' + Math.round(s.f * 100) + '%</b></div></a>';
+      o += '<a class="st-r un-link" href="#/universe/' + u.id + '"><span class="l">Parte de ' + esc(u.title) + '</span><span class="v">' + s.done + ' de ' + s.total + '</span>' + ic('chev', 16) + '</a>';
       if (ix === 0) {
+        // tira de pósters en orden, centrada en este título
         const ord = data.ordered(u, 'chrono'), i = ord.findIndex((x) => x.key === k);
-        const nb = [i - 1, i + 1].filter((j) => j >= 0 && j < ord.length);
-        if (nb.length) o += '<div class="sub">' + (u.modes ? 'En el orden de la historia' : 'Series conectadas') + '</div>' + nb.map((j) => { const x = ord[j]; return '<a class="pcard" href="#/' + x.k + '/' + x.id + '"><div class="poster">' + (x.p ? '<img class="ld" src="' + img(x.p, 'w185') + '" alt="">' : '') + '</div><div><small>' + (j < i ? 'Antes' : 'Después') + '</small><b>' + esc(x.t) + '</b><i>' + esc(x.rl || String(x.y)) + '</i></div><span>' + (store.isDone(x.key, x.eps) ? ic('check', 20) : '') + '</span></a>'; }).join('');
+        if (i > -1 && ord.length > 1) {
+          const from = Math.max(0, i - 2), to = Math.min(ord.length, i + 5);
+          o += '<div class="sub">' + (u.modes ? 'En el orden de la historia' : 'Series conectadas') + '</div><div class="un-strip" id="strip">' + ord.slice(from, to).map((x, n) => {
+            const j = from + n, here = j === i, cap = here ? 'Esta ficha' : j === i - 1 ? 'Antes' : j === i + 1 ? 'Después' : String(x.y || '');
+            return '<a class="un-pc' + (here ? ' here' : '') + (store.isDone(x.key, x.eps) ? ' done' : '') + '" href="#/' + x.k + '/' + x.id + '"><span class="im">' + (x.p ? '<img src="' + img(x.p, 'w185') + '" alt="">' : '') + (store.isDone(x.key, x.eps) ? '<u>' + ic('check', 14, 3) + '</u>' : '') + '</span><b>' + esc(x.t) + '</b><small>' + esc(cap) + '</small></a>';
+          }).join('') + '</div>';
+        }
       }
     });
     const c = d.belongs_to_collection;
-    if (c) o += '<a class="pcard" href="#/collection/' + c.id + '"><div class="poster">' + (c.poster_path ? '<img class="ld" src="' + img(c.poster_path, 'w185') + '" alt="">' : '') + '</div><div><small>Colección</small><b>' + esc(c.name) + '</b><i>Todas las películas, en orden de estreno</i></div><span>' + ic('chev', 18) + '</span></a>';
+    if (c) o += '<a class="st-r un-link" href="#/collection/' + c.id + '"><span class="l">Colección · ' + esc(c.name.replace(/\s*[-–:]?\s*(Collection|Colección|Saga|Trilogía)\s*$/i, '').replace(/\s*[-–:]\s*$/, '')) + '</span>' + ic('chev', 16) + '</a>';
     const recs = ((d.recommendations && d.recommendations.results) || []).filter((r) => r.poster_path).slice(0, 14);
     if (recs.length) o += '<div class="sub">Si te gustó esto</div><div class="row" style="margin:0 calc(-1*var(--gr)) 0 calc(-1*var(--gl))">' + recs.map((r) => posterCard(normItem(r, type), { w: 118 })).join('') + '</div>';
     if (!o) o = '<div class="note">' + ic('info', 18) + '<span>No hay conexiones cargadas para este título todavía.</span></div>';
@@ -247,6 +253,7 @@ export async function mount(el, { type, id, query }) {
     $$('.seg button', el).forEach((b) => b.classList.toggle('on', b.dataset.p === p));
     $$('.pane', el).forEach((pn) => { const show = pn.dataset.pane === p; pn.hidden = !show; pn.classList.toggle('show', show); });
     if (p === 'com') loadCommunity();
+    if (p === 'uni') requestAnimationFrame(() => { const st = $('#strip', el), h = st && $('.here', st); if (st && h) st.scrollLeft = h.offsetLeft - (st.clientWidth - h.offsetWidth) / 2; });
     animate(el);
   }
   if (query && query.tab) switchTab(query.tab);

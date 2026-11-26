@@ -141,3 +141,19 @@ html.snapy #view{padding-bottom:0}
 .ell{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fs-in{grid-template-columns:minmax(0,1fr)}
 .pri-row{min-width:0}
+
+/* ---------- continuidad en la ficha: línea de texto y tira de pósters, sin tarjetas ---------- */
+.nd .sub{font:700 17px/1.2 var(--f-body);letter-spacing:0;text-transform:none;color:#fff;margin:22px 0 12px}
+.nd .sub::before{display:none}
+a.st-r.un-link{border-top:0;min-height:46px;padding:6px 0}
+.un-strip{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;margin:0 calc(-1*var(--gr)) 6px calc(-1*var(--gl));padding:2px var(--gr) 8px var(--gl);scrollbar-width:none}
+.un-strip::-webkit-scrollbar{display:none}
+.un-strip .un-pc{flex:none;width:100px;scroll-snap-align:center;text-align:left}
+.un-strip .un-pc .im{position:relative;display:block;aspect-ratio:2/3;border-radius:10px;overflow:hidden;background:#17171c;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.un-strip .un-pc img{display:block;width:100%;height:100%;object-fit:cover}
+.un-strip .un-pc.done img{opacity:.5}
+.un-strip .un-pc.here .im{box-shadow:0 0 0 2px var(--a)}
+.un-strip .un-pc u{position:absolute;right:6px;top:6px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--a);color:#0b0b0e;text-decoration:none}
+.un-strip .un-pc b{display:-webkit-box;margin-top:7px;font-size:12.5px;font-weight:600;line-height:1.25;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.un-strip .un-pc small{display:block;font-size:11.5px;color:rgba(243,241,236,.5);margin-top:1px}
+.un-strip .un-pc.here small{color:var(--a);font-weight:700}

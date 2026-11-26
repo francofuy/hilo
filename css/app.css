@@ -283,14 +283,22 @@ h2.sec{font:700 20px/1.2 var(--f-body);letter-spacing:-.01em}
 .attr a{color:var(--fg2);text-decoration:underline;text-underline-offset:2px}
 
 /* ---------- hoja inferior y aviso ---------- */
-.scrim{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.55);opacity:0;transition:opacity .4s}
+.scrim{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.22);opacity:0;transition:opacity .4s}
 .scrim.in{opacity:1}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:71;max-width:520px;margin:0 auto;max-height:84vh;overflow-y:auto;padding:12px var(--gr) calc(var(--sb) + 22px) var(--gl);
-  border-radius:28px 28px 0 0;background:rgba(26,26,34,.82);-webkit-backdrop-filter:blur(36px) saturate(1.6);backdrop-filter:blur(36px) saturate(1.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
-  transform:translateY(105%);transition:transform .6s var(--ease)}
-.sheet.in{transform:none}
-.grab{width:38px;height:5px;border-radius:5px;background:rgba(255,255,255,.28);margin:0 auto 16px}
-.sheet h3{font:800 30px/1 var(--f-disp);font-stretch:70%;text-transform:uppercase}
+/* mini modal flotante: translúcido y desenfocado, para que se funda con la imagen de fondo */
+.sheet{position:fixed;left:12px;right:12px;bottom:calc(var(--sb) + 12px);z-index:71;max-width:496px;margin:0 auto;max-height:72vh;overflow-y:auto;padding:20px 20px 20px;
+  border-radius:28px;background:rgba(18,18,26,.4);-webkit-backdrop-filter:blur(46px) saturate(1.8);backdrop-filter:blur(46px) saturate(1.8);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 28px 70px -22px rgba(0,0,0,.65);text-shadow:0 1px 10px rgba(0,0,0,.45);
+  opacity:0;transform:translateY(28px) scale(.96);transition:transform .55s var(--ease),opacity .4s;scrollbar-width:none}
+.sheet::-webkit-scrollbar{display:none}
+.sheet.in{opacity:1;transform:none}
+/* mientras hay una hoja abierta, la barra de abajo se desvanece: el modal queda solo sobre la imagen */
+.nav{transition:opacity .35s var(--ease)}
+html.lock .nav{opacity:0;pointer-events:none}
+.grab{display:none}
+.sheet .btn.glass{background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2);text-shadow:none}
+.sheet .btn.pri{text-shadow:none}
+.sheet h3{font:800 26px/1 var(--f-disp);font-stretch:70%;text-transform:uppercase}
 .sheet .ssub{color:var(--fg2);font-size:13.5px;margin:4px 0 16px}
 .rc{display:grid;grid-template-columns:44px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
 .rc em{font-style:normal;font-size:11.5px;font-weight:800;color:var(--a);padding-top:2px;font-variant-numeric:tabular-nums}
