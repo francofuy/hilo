@@ -22,6 +22,11 @@ async function artOf(cover) {
   const a = await api.heroAssets(cover.k, cover.id);
   return a.poster || img(cover.b, 'w1280') || img(cover.p, 'w780') || '';
 }
+// Guardar / quitar un universo entero de la lista
+function toggleUni(id, items) {
+  if (store.uniSaved(id)) { const n = store.unsaveUni(id); toast(n ? 'Quité ' + n + ' títulos de tu lista' : 'Universo quitado'); return false; }
+  const n = store.saveUni(id, items); toast(n ? 'Guardé el universo: ' + n + ' títulos en tu lista' : 'Universo guardado'); return true;
+}
 async function setDone(i, on) {
   if (i.k === 'movie') { store.rememberItem(i); store.setMovie(i.key, on); return; }
   if (!on) { store.unmarkAll(i.key); return; }
@@ -104,7 +109,8 @@ async function render(el, U) {
     const pendBtn = '<button class="ab' + (pend ? ' on' : '') + '" data-a="pend">' + ic('check', 24) + '<span>' + (pend ? 'Solo pendientes' : 'Todos') + '</span></button>';
     const shown = pend ? ord.filter((i) => frac(i) < 0.999) : ord;
     const hi = here ? shown.indexOf(here) : -1;
-    topEl.innerHTML = '<div class="un-hero">' + back + '<div class="fs-in"><div class="kk">' + (U.id[0] === 'c' && /^c\d+$/.test(U.id) ? 'Colección' : 'Universo') + '</div><h1 class="un-title">' + esc(U.title) + '</h1><div class="mt">' + esc(mt) + '</div>' + cont + '<div class="acts3">' + modeBtn + pendBtn + '</div></div></div>';
+    const sv = store.uniSaved(U.id), saveBtn = '<button class="ab sv' + (sv ? ' on' : '') + '" data-a="save">' + ic('mark', 24) + '<span>' + (sv ? 'Guardado' : 'Guardar') + '</span></button>';
+    topEl.innerHTML = '<div class="un-hero">' + back + '<div class="fs-in"><div class="kk">' + (U.id[0] === 'c' && /^c\d+$/.test(U.id) ? 'Colección' : 'Universo') + '</div><h1 class="un-title">' + esc(U.title) + '</h1><div class="mt">' + esc(mt) + '</div>' + cont + '<div class="acts3">' + modeBtn + pendBtn + saveBtn + '</div></div></div>';
     const before = hi > 0 ? shown.slice(0, hi) : [], after = hi >= 0 ? shown.slice(hi) : shown;
     bodyEl.innerHTML = '<div class="pad un-list"><button class="un-why" data-a="mode"><span>' + (curOpt.rec ? '<b>Orden recomendado.</b> ' : '<b>' + curOpt.label + '.</b> ') + esc(firstSentence(curOpt.why)) + '</span>' + ic('chev', 16) + '</button>' +
       (before.length ? '<button class="un-prev" data-a="prev"><span>' + (openPrev ? 'Ocultar' : 'Ver') + ' los ' + before.length + ' anteriores</span>' + ic('chev', 16) + '</button>' + (openPrev ? rows(before, null) : '') : '') + rows(after, here) + '</div>';
@@ -122,6 +128,7 @@ async function render(el, U) {
     if (act === 'back') return goBack();
     if (act === 'mode') return openOrders(U, mode, (id) => { mode = id; S.uorder[U.id] = id; store.save(); draw(); });
     if (act === 'pend') { pend = !pend; return draw(); }
+    if (act === 'save') { toggleUni(U.id, U.items); return draw(); }
     if (act === 'prev') { openPrev = !openPrev; return draw(); }
     const i = U.items.find((x) => x.key === a.dataset.key);
     if (act === 'cont') { const h = hereOf(ord); if (h) location.hash = '#/' + h.k + '/' + h.id + '?go=next'; return; }
@@ -136,19 +143,32 @@ export async function mountList(el) {
   if (!store.state().key) { location.hash = '#/setup'; return; }
   let D; try { D = await data.load(); } catch (e) { D = { universes: [], byKey: {} }; }
   const S = store.state(), root = document.documentElement;
-  const panels = D.universes.map((u) => ({ href: '#/universe/' + u.id, title: u.title, sub: u.sub, here: hereOf(data.sequence(u, data.prefOrder(u, (S.uorder || {})[u.id]))), s: stats(u.items), cover: u.cover, hue: data.uhue(u) }));
+  const panels = D.universes.map((u) => ({ href: '#/universe/' + u.id, title: u.title, sub: u.sub, id: u.id, items: u.items, here: hereOf(data.sequence(u, data.prefOrder(u, (S.uorder || {})[u.id]))), s: stats(u.items), cover: u.cover, hue: data.uhue(u) }));
   // colecciones de TMDB que se detectan solas (películas que seguís y tienen secuelas)
   const known = new Set(); D.universes.forEach((u) => u.items.forEach((i) => known.add(i.key)));
   const colls = {};
   Object.keys(S.meta).filter((k) => store.tracked(k)).forEach((k) => { const m = S.meta[k]; if (m.type === 'movie' && m.coll && !known.has(k)) colls[m.coll.id] = m.coll; });
-  Object.values(colls).forEach((c) => panels.push({ href: '#/collection/' + c.id, title: c.name.replace(/ (Collection|Colección)$/i, ''), sub: 'Colección de TMDB', here: null, s: null, art: img(c.b, 'w1280') || img(c.p, 'w780'), hue: (c.id * 47) % 360 }));
-  panels.sort((a, b) => ((b.s && b.s.f > 0) ? 1 : 0) - ((a.s && a.s.f > 0) ? 1 : 0) || ((b.s ? b.s.f : 0) - (a.s ? a.s.f : 0)));
+  Object.values(colls).forEach((c) => panels.push({ id: 'c' + c.id, coll: c.id, href: '#/collection/' + c.id, title: c.name.replace(/ (Collection|Colección)$/i, ''), sub: 'Colección de TMDB', here: null, s: null, art: img(c.b, 'w1280') || img(c.p, 'w780'), hue: (c.id * 47) % 360 }));
+  // primero lo que ya empezaste o guardaste
+  const hot = (p) => ((p.s && p.s.f > 0) || store.uniSaved(p.id) ? 1 : 0);
+  panels.sort((a, b) => hot(b) - hot(a) || ((b.s ? b.s.f : 0) - (a.s ? a.s.f : 0)));
   await Promise.all(panels.map(async (p) => { if (!p.art) p.art = await artOf(p.cover); }));
   if (!el.isConnected) return;
   root.classList.add('nd', 'nd-full', 'snapy'); el.style.setProperty('--h', panels[0] ? panels[0].hue : 215); root.style.setProperty('--h', panels[0] ? panels[0].hue : 215);
-  const sub = (p) => (!p.s ? p.sub : p.s.done || p.s.part ? p.s.done + ' de ' + p.s.total + ' vistos' : p.s.total + ' títulos');
+  const sub = (p) => (store.uniSaved(p.id) ? 'Guardado · ' : '') + (!p.s ? p.sub : p.s.done || p.s.part ? p.s.done + ' de ' + p.s.total + ' vistos' : p.s.total + ' títulos');
 
-  el.innerHTML = '<div class="hm-brand">' + ic('uni', 20, 2) + '<span>Universos</span></div>' + panels.map((p, i) => '<section class="un-pan" data-i="' + i + '"><div class="fs-in"><div class="kk">' + esc(sub(p)) + '</div><h2 class="un-title">' + esc(p.title) + '</h2><div class="mt">' + (p.here ? 'Sigue: ' + esc(p.here.t) : esc(p.sub || '')) + '</div><div class="pri-row"><a class="btn pri" href="' + p.href + '">Abrir</a></div></div></section>').join('');
+  el.innerHTML = '<div class="hm-brand">' + ic('uni', 20, 2) + '<span>Universos</span></div>' + panels.map((p, i) => '<section class="un-pan" data-i="' + i + '"><div class="fs-in"><div class="kk">' + esc(sub(p)) + '</div><h2 class="un-title">' + esc(p.title) + '</h2><div class="mt">' + (p.here ? 'Sigue: ' + esc(p.here.t) : esc(p.sub || '')) + '</div><div class="pri-row"><a class="btn pri" href="' + p.href + '">Abrir</a></div><div class="acts3"><button class="ab sv' + (store.uniSaved(p.id) ? ' on' : '') + '" data-a="save" data-i="' + i + '">' + ic('mark', 24) + '<span>' + (store.uniSaved(p.id) ? 'Guardado' : 'Guardar universo') + '</span></button></div></div></section>').join('');
+  // guardar un universo entero desde la lista (las colecciones de TMDB se bajan en ese momento)
+  el.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-a="save"]'); if (!b) return; const p = panels[+b.dataset.i]; if (!p) return;
+    let items = p.items;
+    if (!items && !store.uniSaved(p.id)) {
+      try { const c = await api.collection(p.coll); items = (c.parts || []).map((x) => ({ key: 'movie:' + x.id, k: 'movie', id: x.id, t: x.title, y: (x.release_date || '').slice(0, 4), d: x.release_date || null, p: x.poster_path, b: x.backdrop_path })); } catch (err) { toast('Sin conexión: no pude guardar la colección'); return; }
+    }
+    const on = toggleUni(p.id, items || []);
+    b.classList.toggle('on', on); b.querySelector('span').textContent = on ? 'Guardado' : 'Guardar universo';
+    const kk = b.closest('.fs-in').querySelector('.kk'); if (kk) kk.textContent = sub(p);
+  });
   const fsEl = document.createElement('div'); fsEl.className = 'fs-bg';
   fsEl.innerHTML = panels.map((p, i) => '<div class="sl' + (i ? '' : ' on') + '"><img class="a" data-src="' + p.art + '" alt=""></div>').join('') + '<i></i>'; document.body.appendChild(fsEl);
   const sl = $$('.sl', fsEl); let raf = 0, k0 = -1;

@@ -175,3 +175,7 @@ a.st-r.un-link{border-top:0;min-height:46px;padding:6px 0}
 .og svg{flex:none;margin-top:3px;opacity:0;color:var(--a)}
 .og.on svg{opacity:1}
 .og.no{opacity:.75}
+
+/* ---------- guardar universo ---------- */
+.ab.sv.on svg path{fill:currentColor}
+.un-pan .acts3{margin-top:2px}

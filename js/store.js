@@ -1,7 +1,7 @@
 // Estado de Hilo: todo vive en el teléfono (localStorage). La API key también,
 // así el repositorio público nunca contiene secretos.
 const KEY = 'hilo:v1';
-const DEF = () => ({ v: 1, key: '', region: 'AR', follow: {}, watched: {}, last: {}, rate: {}, off: {}, meta: {}, fx: 'full' });
+const DEF = () => ({ v: 1, key: '', region: 'AR', follow: {}, watched: {}, last: {}, rate: {}, off: {}, meta: {}, unis: {}, uorder: {}, fx: 'full' });
 
 let S;
 try { S = { ...DEF(), ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { S = DEF(); }
@@ -128,6 +128,28 @@ export function completed() {
   return keys().filter((k) => frac(k) >= 0.999).sort((a, b) => (S.last[b] || 0) - (S.last[a] || 0));
 }
 
+/* ---------- universos guardados ----------
+   Guardar un universo agrega a la lista todos sus títulos de una vez. Se recuerda cuáles agregó esa acción,
+   para que al quitarlo salgan solo esos (y nunca algo que ya viste o que otro universo guardado también usa). */
+export const uniSaved = (id) => !!(S.unis && S.unis[id]);
+export function saveUni(id, items) {
+  S.unis = S.unis || {};
+  const added = [];
+  items.forEach((i) => { const k = kid(i.k, i.id); rememberItem(i); if (!S.follow[k] && !S.watched[k]) { S.follow[k] = Date.now(); added.push(k); } });
+  S.unis[id] = { t: Date.now(), added };
+  save();
+  return added.length;
+}
+export function unsaveUni(id) {
+  const u = S.unis && S.unis[id]; if (!u) return 0;
+  delete S.unis[id];
+  const keep = new Set(); Object.values(S.unis).forEach((x) => (x.added || []).forEach((k) => keep.add(k)));
+  let n = 0;
+  (u.added || []).forEach((k) => { if (!S.watched[k] && !keep.has(k) && S.follow[k]) { delete S.follow[k]; n++; } });
+  save();
+  return n;
+}
+
 /* ---------- respaldo ---------- */
 export function exportJSON() {
   const { key, ...rest } = S; // la key nunca sale en el respaldo
@@ -136,7 +158,7 @@ export function exportJSON() {
 export function importJSON(txt) {
   const d = JSON.parse(txt);
   if (!d || typeof d !== 'object' || !d.watched) throw new Error('Archivo inválido');
-  ['follow', 'watched', 'last', 'rate', 'off', 'meta'].forEach((f) => { S[f] = { ...S[f], ...(d[f] || {}) }; });
+  ['follow', 'watched', 'last', 'rate', 'off', 'meta', 'unis', 'uorder'].forEach((f) => { S[f] = { ...S[f], ...(d[f] || {}) }; });
   if (d.region) S.region = d.region;
   save();
 }
