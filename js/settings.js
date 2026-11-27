@@ -3,10 +3,12 @@ import * as store from './store.js';
 import * as mon from './mon.js';
 import { PLATS, platName } from './platform.js';
 import * as api from './api.js';
+import * as data from './data.js';
+import * as fun from './fun.js';
 import { openSheet } from './sheet.js';
 import { esc, ic, img, toast, $ } from './ui.js';
 
-export const VERSION = '1.8.2';
+export const VERSION = '1.9.0';
 const REGIONS = [['AR', 'Argentina'], ['MX', 'México'], ['CL', 'Chile'], ['CO', 'Colombia'], ['UY', 'Uruguay'], ['PE', 'Perú'], ['ES', 'España'], ['BR', 'Brasil'], ['US', 'Estados Unidos']];
 const regionName = (c) => (REGIONS.find((r) => r[0] === c) || [c, c])[1];
 
@@ -104,10 +106,12 @@ export async function mount(el) {
   if (!el.isConnected) return;
   const fsEl = document.createElement('div'); fsEl.className = 'fs-bg dim'; fsEl.innerHTML = (src ? '<img class="a" src="' + src + '" alt="">' : '') + '<i></i>'; document.body.appendChild(fsEl);
 
+  const U = await data.load(), YS = fun.yearStats(U);
   const draw = () => {
     const off = Object.keys(S.off).length, prog = store.inProgress().length, done = store.completed().length, fol = store.listed().length;
     const sum = [prog ? prog + ' en curso' : '', done ? done + ' terminadas' : '', fol ? fol + ' en tu lista' : ''].filter(Boolean).join(' · ') || 'Todavía no seguís nada';
     const groups = [
+      [['year', 'Tu año en Hilo', Math.round(YS.mins / 60) + ' h']],
       [['region', 'País', regionName(S.region)], ['key', 'API key de TMDB', '••••' + S.key.slice(-4)], ['plat', 'Mis plataformas', S.plat && S.plat.length ? S.plat.map(platName).join(', ') : 'Todas'], ['mon', 'Enlaces por episodio', S.mkey ? 'Activados' : 'Sin configurar']],
       [['off', 'Sin conexión', off ? off + (off === 1 ? ' guardada' : ' guardadas') : 'Nada guardado'], ['backup', 'Respaldo', '']],
       [...(standalone ? [] : [['install', 'Instalar en tu iPhone', '']]), ['about', 'Acerca de', 'v' + VERSION]],
@@ -120,6 +124,7 @@ export async function mount(el) {
   draw();
   el.addEventListener('click', (e) => {
     const b = e.target.closest('[data-s]'); if (!b) return;
+    if (b.dataset.s === 'year') { fun.openYear(U); return; }
     const sh = SH[b.dataset.s](S, draw), s = openSheet(sh.html, 215); if (sh.bind) sh.bind(s);
   });
   return () => { fsEl.remove(); root.classList.remove('nd', 'nd-full'); };

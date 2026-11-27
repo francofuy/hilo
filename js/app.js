@@ -10,6 +10,7 @@ import { initNav, initBlurUp, initLock, initDragScroll } from './motion.js';
 import { initLinks } from './platform.js';
 import { initMon } from './mon.js';
 import { initBack } from './back.js';
+import { initFun } from './fun.js';
 
 const ROUTES = [
   [/^\/?$/, home, 'home'],
@@ -75,6 +76,7 @@ async function route() {
 initLinks();
 initMon();
 initBack();
+initFun();
 initLock();
 initDragScroll();
 initNav();

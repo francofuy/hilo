@@ -9,6 +9,7 @@ import { openSheet } from './sheet.js';
 import { stats } from './data.js';
 import { PLATS, platName, platId, platUrl, mine, best, platAttr } from './platform.js';
 import { ensure } from './mon.js';
+import * as fun from './fun.js';
 import { esc, ic, img, ago, daysUntil, epLabel } from './ui.js';
 
 const RT = { movie: 125, ep: 45 }; // estimaciones cuando TMDB no da la duración
@@ -18,6 +19,7 @@ const dur = (m) => { m = Math.round(m / 5) * 5; return m >= 60 ? Math.floor(m / 
 const goBtn = (cls, go, fallback, type, id, title) => go ? '<a class="' + cls + '" href="' + go.url + '" target="_blank" rel="noopener"' + platAttr(type, id, title, go.opts) + ' aria-label="Abrir en ' + esc(go.short) + '">' + ic('play', 15) + '</a>' : (fallback ? '<a class="' + cls + ' off" href="' + fallback + '" aria-label="Ver ficha">' + ic('play', 15) + '</a>' : '');
 const rowTitle = (t, sub) => '<h2 class="hm-h">' + t + (sub ? '<small>' + sub + '</small>' : '') + '</h2>';
 
+const calBtn = (d, t, s) => '<button class="cal" data-cal="' + d + '" data-ct="' + esc(t) + '" data-cs="' + esc(s) + '" aria-label="Agregar al calendario">' + ic('cal', 16) + '</button>';
 function context(U) {
   const S = store.state(), t0 = store.today();
   const tracked = new Set(Object.keys(S.meta).filter((k) => store.tracked(k)));
@@ -92,20 +94,23 @@ export async function build(U, hue) {
     let min = 0, left = 0;
     cd.u.items.forEach((i) => { if (i === cd.fut || (i.d && i.d > t0)) return; const f = store.frac(i.key, i.eps); if (f >= 0.999) return; left++; const m = store.meta(i.key) || {}; min += (1 - f) * (i.k === 'movie' ? (m.rt || RT.movie) : (i.eps || m.tot || 8) * RT.ep); });
     const per = min / days, bg = img(cd.fut.b, 'w780');
-    tiles.push('<a class="hx-e hx-cd" href="#/universe/' + cd.u.id + '">' + (bg ? '<img class="bg" src="' + bg + '" alt="">' : '') + '<span class="bd">Cuenta regresiva</span><span class="tx"><span class="big"><b>' + days + '</b><i>' + (days === 1 ? 'día' : 'días') + ' para</i></span><strong>' + esc(cd.fut.t) + '</strong>' +
-      '<span class="thr"><u style="width:' + Math.round(cd.s.f * 100) + '%"></u></span><small>' + (left ? left + (left === 1 ? ' título' : ' títulos') + ' · ' + dur(min) + ' · ' + dur(per) + '/día' : 'Todo lo anterior, visto') + '</small></span></a>');
+    tiles.push('<div class="hx-ew"><a class="hx-e hx-cd" href="#/universe/' + cd.u.id + '">' + (bg ? '<img class="bg" src="' + bg + '" alt="">' : '') + '<span class="bd">Cuenta regresiva</span><span class="tx"><span class="big"><b>' + days + '</b><i>' + (days === 1 ? 'día' : 'días') + ' para</i></span><strong>' + esc(cd.fut.t) + '</strong>' +
+      '<span class="thr"><u style="width:' + Math.round(cd.s.f * 100) + '%"></u></span><small>' + (left ? left + (left === 1 ? ' título' : ' títulos') + ' · ' + dur(min) + ' · ' + dur(per) + '/día' : 'Todo lo anterior, visto') + '</small></span></a>' + calBtn(cd.fut.d, cd.fut.t, 'Estreno · ' + cd.u.title) + '</div>');
   }
   up.filter((x) => !cd || !(x.type === cd.fut.k && x.id === cd.fut.id)).slice(0, 5).forEach((x) => {
     const dd = daysUntil(x.date), mo = x.date.split('-')[1], d = x.date.split('-')[2], bg = img(x.b, 'w780');
-    tiles.push('<a class="hx-e" href="#/' + x.type + '/' + x.id + '">' + (bg ? '<img class="bg" src="' + bg + '" alt="">' : '') + '<span class="bd"><b>' + (+d) + '</b> ' + MES[+mo - 1] + '</span><span class="tx"><strong>' + esc(x.title) + '</strong><small>' + esc(x.sub) + ' · ' + (dd === 0 ? 'hoy' : dd === 1 ? 'mañana' : 'en ' + dd + ' días') + '</small></span></a>');
+    tiles.push('<div class="hx-ew"><a class="hx-e" href="#/' + x.type + '/' + x.id + '">' + (bg ? '<img class="bg" src="' + bg + '" alt="">' : '') + '<span class="bd"><b>' + (+d) + '</b> ' + MES[+mo - 1] + '</span><span class="tx"><strong>' + esc(x.title) + '</strong><small>' + esc(x.sub) + ' · ' + (dd === 0 ? 'hoy' : dd === 1 ? 'mañana' : 'en ' + dd + ' días') + '</small></span></a>' + calBtn(x.date, x.title, x.sub) + '</div>');
   });
-  if (tiles.length) parts.push(rowTitle('Lo que viene') + '<div class="hm-row hx-rail">' + tiles.join('') + '</div>');
+  const plan = fun.planFor(U);
+  if (tiles.length) parts.push(rowTitle('Lo que viene') + '<div class="hm-row hx-rail">' + tiles.join('') + '</div>' + (plan ? fun.planCard(plan) : ''));
+  else if (plan) parts.push(fun.planCard(plan).replace('class="hx-today"', 'class="hx-today solo"'));
 
   /* ---- seguir viendo ---- */
   prog.slice(0, 5).forEach((k) => { const m = store.meta(k); if (m && m.type === 'tv') ensure('tv', m.id); });
   const wk = store.weekStats();
   if (prog.length) {
-    const week = wk.n ? 'Esta semana: ' + (wk.eps ? wk.eps + (wk.eps === 1 ? ' cap.' : ' caps.') : '') + (wk.eps && wk.movies ? ' + ' : '') + (wk.movies ? wk.movies + (wk.movies === 1 ? ' peli' : ' pelis') : '') + ' · ' + dur(wk.mins) : '';
+    const stk = fun.streak(), fl = stk > 1 ? '<span class="fl">' + ic('flame', 14, 2) + stk + ' días</span>' : '';
+    const week = fl + (wk.n ? 'Esta semana: ' + (wk.eps ? wk.eps + (wk.eps === 1 ? ' cap.' : ' caps.') : '') + (wk.eps && wk.movies ? ' + ' : '') + (wk.movies ? wk.movies + (wk.movies === 1 ? ' peli' : ' pelis') : '') + ' · ' + dur(wk.mins) : '');
     const cards = prog.slice(0, 8).map((k) => {
       const m = store.meta(k), f = store.frac(k), days = (Date.now() - (S.last[k] || 0)) / 864e5;
       const fh = '#/' + m.type + '/' + m.id + '?go=next';
@@ -118,7 +123,7 @@ export async function build(U, hue) {
   /* ---- para vos: una sola fila, con el motivo bajo cada título ---- */
   try {
     const picks = (await taste.suggestions(U, 12)).filter((f) => f.info.p);
-    if (picks.length) parts.push(rowTitle('Para vos') + '<div class="hm-row">' + picks.map((f) => '<div class="hx-pt"><a class="im" href="#/' + f.type + '/' + f.id + '"><img src="' + img(f.info.p, 'w342') + '" alt="" loading="lazy"></a>' + goBtn('go', best(f.type, f.id), null, f.type, f.id, f.info.t) + '<a class="nm" href="#/' + f.type + '/' + f.id + '">' + esc(f.info.t) + '</a><small class="why">' + esc(f.reason.replace(/^Porque seguís /, 'Por ').replace(/^Es parte de /, 'De ')) + '</small></div>').join('') + '</div>');
+    if (picks.length) parts.push(rowTitle('Para vos', '<button class="hx-act" data-dsc>Descubrir</button>') + '<div class="hm-row">' + picks.map((f) => '<div class="hx-pt"><a class="im" href="#/' + f.type + '/' + f.id + '"><img src="' + img(f.info.p, 'w342') + '" alt="" loading="lazy"></a>' + goBtn('go', best(f.type, f.id), null, f.type, f.id, f.info.t) + '<a class="nm" href="#/' + f.type + '/' + f.id + '">' + esc(f.info.t) + '</a><small class="why">' + esc(f.reason.replace(/^Porque seguís /, 'Por ').replace(/^Es parte de /, 'De ')) + '</small></div>').join('') + '</div>');
   } catch (e) { /* sin sugerencias */ }
 
   /* ---- una sola fila con tres pestañas: plataformas · tu lista · tendencias ---- */
@@ -151,6 +156,11 @@ export async function build(U, hue) {
     html: parts.join(''),
     bind(el) {
       binds.forEach((f) => f(el));
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('[data-plan]')) { e.preventDefault(); fun.openPlan(U, (pl) => { const c = el.querySelector('.hx-today'); if (c && pl) { const solo = c.classList.contains('solo'); c.outerHTML = fun.planCard(pl).replace('class="hx-today"', 'class="hx-today' + (solo ? ' solo' : '') + '"'); } }); return; }
+        const c = e.target.closest('[data-cal]'); if (c) { e.preventDefault(); e.stopPropagation(); fun.openCal({ d: c.dataset.cal, t: c.dataset.ct, s: c.dataset.cs }); return; }
+        if (e.target.closest('[data-dsc]')) { e.preventDefault(); fun.openDiscover(U); }
+      });
       // "T2 · E5 · título" de cada serie en curso; si hay imagen del capítulo, reemplaza al fondo
       el.querySelectorAll('[data-hxnx]').forEach(async (n) => {
         try {

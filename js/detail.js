@@ -105,7 +105,7 @@ export async function mount(el, { type, id, query }) {
     const rate = d.vote_count >= 30 && d.vote_average ? d.vote_average.toFixed(1) + ' · ' : '';
     const yrs = isTv && d.last_air_date && d.last_air_date.slice(0, 4) !== n.year && d.status !== 'Returning Series' ? n.year + '–' + d.last_air_date.slice(0, 4) : n.year;
     const mt = '<div class="mt">' + esc(rate + [isTv ? 'Serie' : 'Película', yrs, isTv ? (d.number_of_seasons ? d.number_of_seasons + (d.number_of_seasons === 1 ? ' temporada' : ' temporadas') : '') : rt].filter(Boolean).join(' · ')) + '</div>';
-    const back = '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button>';
+    const back = '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button><button class="gbtn sharebtn" data-share="' + k + '" data-st="' + esc(title) + '" aria-label="Compartir">' + ic('share', 20) + '</button>';
     const pri = '<div class="pri-row"><button class="btn pri" id="mainbtn" data-a="main"></button></div>';
     // en las series, el botón de Retomar abre la plataforma (o pregunta dónde); en las películas, esta acción
     const openBtn = !isTv && popts.length ? '<a class="ab" href="' + popts[0].url + '" target="_blank" rel="noopener"' + platAttr(type, id, title, popts) + '>' + ic('play', 24) + '<span>Ver' + (popts.length > 1 ? '' : ' en ' + esc(popts[0].short)) + '</span></a>' : '';
@@ -128,8 +128,8 @@ export async function mount(el, { type, id, query }) {
       const people = cast.filter((c) => c.name).slice(0, 18);
       const who = isTv ? (d.created_by || []).map((c) => c.name) : ((d.credits && d.credits.crew) || []).filter((c) => c.job === 'Director').map((c) => c.name);
       return (who.length ? '<div class="secsub" style="margin-bottom:14px">' + (isTv ? 'Creada por ' : 'Dirigida por ') + '<b style="color:var(--fg)">' + esc([...new Set(who)].join(', ')) + '</b></div>' : '') +
-        '<div class="cast">' + people.map((c) => { const role = isTv ? (c.roles && c.roles[0] && c.roles[0].character) : c.character; const ini = c.name.split(' ').slice(0, 2).map((w) => w[0]).join('');
-          return '<div class="pers"><div class="av">' + ini + (c.profile_path ? '<img src="' + img(c.profile_path, 'w185') + '" alt="" loading="lazy" onload="this.classList.add(\'ld\')" onerror="this.remove()">' : '') + '</div><b>' + esc(c.name) + '</b><span>' + esc(role || '') + '</span></div>'; }).join('') + '</div>';
+        '<p class="cast-h">Tocá a alguien para ver de dónde lo conocés.</p><div class="cast">' + people.map((c) => { const role = isTv ? (c.roles && c.roles[0] && c.roles[0].character) : c.character; const ini = c.name.split(' ').slice(0, 2).map((w) => w[0]).join('');
+          return '<div class="pers"' + (c.id ? ' data-person="' + c.id + '" data-pn="' + esc(c.name) + '" data-pk="' + k + '"' : '') + '><div class="av">' + ini + (c.profile_path ? '<img src="' + img(c.profile_path, 'w185') + '" alt="" loading="lazy" onload="this.classList.add(\'ld\')" onerror="this.remove()">' : '') + '</div><b>' + esc(c.name) + '</b><span>' + esc(role || '') + '</span></div>'; }).join('') + '</div>';
     }
     return '<div id="com-root"><div class="skel"><i></i><i></i><i></i></div></div>';
   }

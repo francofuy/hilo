@@ -51,6 +51,7 @@ async function withOverview(type, id, d) {
 const MEDIA = { include_image_language: 'es,en,null', include_video_language: 'es,en,null' };
 export async function tv(id) { return withOverview('tv', id, await call('/tv/' + id, { append_to_response: APPEND_TV, ...MEDIA })); }
 export async function movie(id) { return withOverview('movie', id, await call('/movie/' + id, { append_to_response: APPEND_MOVIE, ...MEDIA })); }
+export const personCredits = (id) => call('/person/' + id + '/combined_credits');
 export const reviews = (type, id) => call('/' + type + '/' + id + '/reviews', {}, 'en-US');
 export async function details(type, id) { return type === 'tv' ? tv(id) : movie(id); }
 
