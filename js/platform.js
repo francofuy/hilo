@@ -2,6 +2,7 @@
 // TMDB no da el enlace directo a cada plataforma, así que se abre la búsqueda del título en su sitio.
 // En el iPhone, si la app está instalada, el enlace suele abrirse en la app.
 import * as store from './store.js';
+import * as mon from './mon.js';
 
 // [nombre en TMDB, nombre corto, id de proveedor en TMDB]
 export const PLATS = [['Netflix', 'Netflix', 8], ['Disney Plus', 'Disney+', 337], ['Amazon Prime Video', 'Prime Video', 119], ['Max', 'Max', 1899], ['Apple TV Plus', 'Apple TV+', 350], ['Paramount Plus', 'Paramount+', 531]];
@@ -35,9 +36,19 @@ export function initLinks() {
 // enlace directo a un episodio (T, E) en una plataforma, si existe
 const CODE_OF = () => Object.keys(CODE).reduce((m, c) => { m[CODE[c]] = c; return m; }, {});
 function epUrl(key, name, ep) {
-  if (!EPS || !ep) return null;
-  const c = CODE_OF()[name], arr = EPS.eps[key] && EPS.eps[key][c] && EPS.eps[key][c][String(ep.s)], v = arr && arr[ep.e - 1];
-  return v ? (v.indexOf('http') === 0 ? v : (EPS.prefix[c] || '') + v) : null;
+  if (!ep) return null;
+  const c = CODE_OF()[name];
+  // 1) los enlaces de los universos (Uruguay); 2) los que pidió la app para las series que seguís
+  const a = EPS && EPS.eps[key] && EPS.eps[key][c] && EPS.eps[key][c][String(ep.s)], v = a && a[ep.e - 1];
+  if (v) return v.indexOf('http') === 0 ? v : (EPS.prefix[c] || '') + v;
+  const mk = mon.epLinks(key), ma = mk && mk[c] && mk[c][String(ep.s)];
+  return (ma && ma[ep.e - 1]) || null;
+}
+// al abrir una ficha: se anotan sus plataformas de tu país y, si ya la seguís, se piden sus enlaces por episodio
+export function learn(type, id, d) {
+  const S = store.state(), res = ((d && d['watch/providers'] && d['watch/providers'].results) || {})[S.region || 'UY'] || {};
+  mon.noteProviders(type + ':' + id, (res.flatrate || []).map((p) => canon(p.provider_name)));
+  if (store.tracked(type + ':' + id)) mon.ensure(type, id);
 }
 export const linksReady = initLinks;
 // marca el enlace para que al volver a Hilo se pregunte si lo viste (js/back.js)
@@ -50,6 +61,8 @@ export function options(type, id, title, d, ep) {
   if (by) mineList.forEach((n) => { if (by[n]) { seen.add(n); out.push({ name: n, short: platName(n), url: epUrl(key, n, ep) || by[n], ep: !!epUrl(key, n, ep) }); } });
   const res = ((d && d['watch/providers'] && d['watch/providers'].results) || {})[S.region || 'UY'] || {};
   (res.flatrate || []).map((p) => canon(p.provider_name)).forEach((n) => { if (mineList.indexOf(n) > -1 && !seen.has(n)) { seen.add(n); out.push({ name: n, short: platName(n), url: epUrl(key, n, ep) || platUrl(n, title, type, id) }); } });
+  // series fuera del catálogo: las plataformas que informó su ficha (Uruguay), con el enlace del episodio que pidió la app
+  (mon.providersOf(key) || []).forEach((n) => { if (mineList.indexOf(n) > -1 && !seen.has(n)) { seen.add(n); const c = CODE_OF()[n]; out.push({ name: n, short: platName(n), url: epUrl(key, n, ep) || (mon.titleLinks(key) || {})[c] || platUrl(n, title, type, id), ep: !!epUrl(key, n, ep) }); } });
   const pref = (S.pref || {})[key];
   return out.sort((x, y) => (y.name === pref) - (x.name === pref));
 }

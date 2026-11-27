@@ -8,6 +8,7 @@ import { nextEpisode, nextSync } from './progress.js';
 import { openSheet } from './sheet.js';
 import { stats } from './data.js';
 import { PLATS, platName, platId, platUrl, mine, best, platAttr } from './platform.js';
+import { ensure } from './mon.js';
 import { esc, ic, img, ago, daysUntil, epLabel } from './ui.js';
 
 const RT = { movie: 125, ep: 45 }; // estimaciones cuando TMDB no da la duración
@@ -101,6 +102,7 @@ export async function build(U, hue) {
   if (tiles.length) parts.push(rowTitle('Lo que viene') + '<div class="hm-row hx-rail">' + tiles.join('') + '</div>');
 
   /* ---- seguir viendo ---- */
+  prog.slice(0, 5).forEach((k) => { const m = store.meta(k); if (m && m.type === 'tv') ensure('tv', m.id); });
   const wk = store.weekStats();
   if (prog.length) {
     const week = wk.n ? 'Esta semana: ' + (wk.eps ? wk.eps + (wk.eps === 1 ? ' cap.' : ' caps.') : '') + (wk.eps && wk.movies ? ' + ' : '') + (wk.movies ? wk.movies + (wk.movies === 1 ? ' peli' : ' pelis') : '') + ' · ' + dur(wk.mins) : '';

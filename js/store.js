@@ -52,7 +52,9 @@ export function rememberItem(i) {
 /* ---------- seguimiento ---------- */
 export const isFollowed = (k) => !!S.follow[k];
 export const tracked = (k) => !!S.follow[k] || !!S.watched[k];
-export function follow(k, on) { if (on) S.follow[k] = Date.now(); else delete S.follow[k]; save(); }
+// al seguir o marcar una serie, js/mon.js pide sus enlaces por episodio
+const track = (k) => { if (k.indexOf('tv:') === 0) { try { window.dispatchEvent(new CustomEvent('hilo:track', { detail: k })); } catch (e) { /* nada */ } } };
+export function follow(k, on) { if (on) { S.follow[k] = Date.now(); track(k); } else delete S.follow[k]; save(); }
 export function touch(k) { S.last[k] = Date.now(); }
 /* registro de lo que marcás, para "tu semana" (minutos estimados) */
 function logWatch(k, n, perItem) {
@@ -72,7 +74,7 @@ export function setEp(k, s, e, on) {
   const a = w[s] || (w[s] = []), i = a.indexOf(e);
   if (on && i < 0) { a.push(e); a.sort((x, y) => x - y); }
   if (!on && i > -1) a.splice(i, 1);
-  tidy(k); if (on) { if (i < 0) logWatch(k, 1, 45); touch(k); if (!S.follow[k]) S.follow[k] = Date.now(); } save();
+  tidy(k); if (on) { if (i < 0) logWatch(k, 1, 45); touch(k); if (!S.follow[k]) S.follow[k] = Date.now(); track(k); } save();
 }
 export function setRange(k, s, eps, on) {
   let w = S.watched[k];
@@ -81,7 +83,7 @@ export function setRange(k, s, eps, on) {
   eps.forEach((e) => (on ? set.add(e) : set.delete(e)));
   if (on) logWatch(k, set.size - before, 45);
   w[s] = [...set].sort((x, y) => x - y);
-  tidy(k); if (on) { touch(k); if (!S.follow[k]) S.follow[k] = Date.now(); } save();
+  tidy(k); if (on) { touch(k); if (!S.follow[k]) S.follow[k] = Date.now(); track(k); } save();
 }
 function tidy(k) {
   const w = S.watched[k]; if (!w || typeof w !== 'object') return;
@@ -165,7 +167,7 @@ export function unsaveUni(id) {
 
 /* ---------- respaldo ---------- */
 export function exportJSON() {
-  const { key, ...rest } = S; // la key nunca sale en el respaldo
+  const { key, mkey, ...rest } = S; // las claves nunca salen en el respaldo
   return JSON.stringify(rest);
 }
 export function importJSON(txt) {

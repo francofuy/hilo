@@ -1,10 +1,11 @@
 // Primera configuración (API key) y Ajustes: una lista corta de filas; cada una abre una hoja con el detalle.
 import * as store from './store.js';
+import * as mon from './mon.js';
 import * as api from './api.js';
 import { openSheet } from './sheet.js';
 import { esc, ic, img, toast, $ } from './ui.js';
 
-export const VERSION = '1.7.1';
+export const VERSION = '1.8.0';
 const REGIONS = [['AR', 'Argentina'], ['MX', 'México'], ['CL', 'Chile'], ['CO', 'Colombia'], ['UY', 'Uruguay'], ['PE', 'Perú'], ['ES', 'España'], ['BR', 'Brasil'], ['US', 'Estados Unidos']];
 const regionName = (c) => (REGIONS.find((r) => r[0] === c) || [c, c])[1];
 
@@ -38,6 +39,24 @@ const SH = {
   key(S, re) {
     return { html: '<h3>API key de TMDB</h3><div class="ssub">Guardada en este teléfono: <b style="color:var(--fg)">••••' + esc(S.key.slice(-4)) + '</b>. Pegá una nueva para cambiarla.</div><div class="field"><input id="nk" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nueva API key"></div><div class="err" id="kerr" role="alert"></div><button class="btn pri" data-act="save" style="width:100%;margin-top:10px">Guardar</button>',
       bind(s) { s.el.addEventListener('click', async (e) => { const b = e.target.closest('[data-act="save"]'); if (!b) return; const v = $('#nk', s.el).value.trim(); if (!v) return; b.disabled = true; b.textContent = 'Comprobando…'; try { await api.validate(v); store.setKey(v); api.clearMemory(); toast('API key actualizada'); s.close(); re(); } catch (er) { $('#kerr', s.el).textContent = er.message; b.disabled = false; b.textContent = 'Guardar'; } }); } };
+  },
+  mon(S, re) {
+    const has = !!S.mkey;
+    return { html: '<h3>Enlaces por episodio</h3><div class="ssub">Abre el episodio exacto en tu plataforma para cualquier serie que sigas. Usa la API gratuita de Movie of the Night (1.000 consultas por mes) con tu propia clave, que queda solo en este teléfono. La pedís en <a href="https://developers.movieofthenight.com/" target="_blank" rel="noopener">developers.movieofthenight.com</a>.</div>' +
+      (has ? '<p class="st-p">Clave guardada: <b style="color:var(--fg)">••••' + esc(S.mkey.slice(-4)) + '</b> · Enlaces de ' + (mon.country() === 'uy' ? 'Uruguay' : 'Argentina') + ' · Consultas este mes: ' + mon.used() + ' de ' + mon.limit + '</p>' : '') +
+      '<div class="field"><input id="mk" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + (has ? 'Nueva clave' : 'Pegá tu clave') + '"></div><div class="err" id="merr" role="alert"></div><button class="btn pri" data-act="msave" style="width:100%;margin-top:10px">Guardar</button>' + (has ? '<button class="btn glass" data-act="mrm" style="width:100%;margin-top:8px">Quitar la clave</button>' : ''),
+      bind(s) {
+        s.el.addEventListener('click', async (e) => {
+          const rm = e.target.closest('[data-act="mrm"]'); if (rm) { delete S.mkey; store.save(); toast('Clave quitada'); s.close(); re(); return; }
+          const b = e.target.closest('[data-act="msave"]'); if (!b) return; const v = $('#mk', s.el).value.trim(); if (!v) return;
+          b.disabled = true; b.textContent = 'Comprobando…';
+          try {
+            const c = await mon.validate(v); S.mkey = v; S.mcountry = c; store.save();
+            store.inProgress().concat(store.listed()).slice(0, 8).forEach((k) => { const m = store.meta(k); if (m && m.type === 'tv') mon.ensure('tv', m.id); });
+            toast('Enlaces por episodio activados'); s.close(); re();
+          } catch (er) { $('#merr', s.el).textContent = er.message; b.disabled = false; b.textContent = 'Guardar'; }
+        });
+      } };
   },
   off(S, re) {
     const list = Object.keys(S.off).map((k) => S.meta[k]).filter(Boolean);
@@ -83,7 +102,7 @@ export async function mount(el) {
     const off = Object.keys(S.off).length, prog = store.inProgress().length, done = store.completed().length, fol = store.listed().length;
     const sum = [prog ? prog + ' en curso' : '', done ? done + ' terminadas' : '', fol ? fol + ' en tu lista' : ''].filter(Boolean).join(' · ') || 'Todavía no seguís nada';
     const groups = [
-      [['region', 'País', regionName(S.region)], ['key', 'API key de TMDB', '••••' + S.key.slice(-4)]],
+      [['region', 'País', regionName(S.region)], ['key', 'API key de TMDB', '••••' + S.key.slice(-4)], ['mon', 'Enlaces por episodio', S.mkey ? 'Activados' : 'Sin configurar']],
       [['off', 'Sin conexión', off ? off + (off === 1 ? ' guardada' : ' guardadas') : 'Nada guardado'], ['backup', 'Respaldo', '']],
       [...(standalone ? [] : [['install', 'Instalar en tu iPhone', '']]), ['about', 'Acerca de', 'v' + VERSION]],
       [['reset', 'Borrar mi progreso', '', 1]]

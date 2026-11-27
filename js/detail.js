@@ -2,7 +2,7 @@
 import * as store from './store.js';
 import * as api from './api.js';
 import { swipeRows } from './motion.js';
-import { options, platUrl, platAttr } from './platform.js';
+import { options, platUrl, platAttr, learn } from './platform.js';
 import { launch } from './back.js';
 import * as data from './data.js';
 import { nextEpisode } from './progress.js';
@@ -57,6 +57,7 @@ export async function mount(el, { type, id, query }) {
   const SC = scenesOf(d);
   el.style.setProperty('--h', hue); document.documentElement.style.setProperty('--h', hue);
   const title = n.title, orig = d.original_title || d.original_name || title, t0 = store.today();
+  learn(type, id, d); // anota sus plataformas y, si ya la seguís, pide sus enlaces por episodio
   const popts = options(type, id, title, d); // dónde verlo entre tus plataformas
 
   /* ---------- datos derivados ---------- */
