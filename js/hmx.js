@@ -51,7 +51,7 @@ export async function openWhat(U, hue) {
     seen.push(pick.k);
     box.innerHTML = '<a class="hx-pick" href="' + pick.href + '" data-close><img src="' + pick.p + '" alt=""><span><b>' + esc(pick.title) + '</b><small>' + esc(pick.sub) + '</small></span></a><div class="hx-pa" id="hxpa"><a class="btn pri" href="' + pick.href + '" data-close>Ver ficha</a>' + (all.length > 1 ? '<button class="btn glass" data-otra>Otra</button>' : '') + '</div>';
     // si está en una de tus plataformas, un botón para abrirla (se completa cuando llegan los datos)
-    try { const d = await api.details(pick.type, pick.id), m = mine(d), pa = s.el.querySelector('#hxpa'); if (m && pa && pa.isConnected && s.el.querySelector('.hx-pick').getAttribute('href') === pick.href) pa.insertAdjacentHTML('afterbegin', '<a class="btn glass" href="' + platUrl(m.name, pick.title) + '" target="_blank" rel="noopener">' + ic('play', 16) + 'Abrir en ' + m.short + '</a>'); } catch (e) { /* sin plataforma */ }
+    try { const d = await api.details(pick.type, pick.id), m = mine(d), pa = s.el.querySelector('#hxpa'); if (m && pa && pa.isConnected && s.el.querySelector('.hx-pick').getAttribute('href') === pick.href) pa.insertAdjacentHTML('afterbegin', '<a class="btn glass" href="' + platUrl(m.name, pick.title, pick.type, pick.id) + '" target="_blank" rel="noopener">' + ic('play', 16) + 'Abrir en ' + m.short + '</a>'); } catch (e) { /* sin plataforma */ }
   };
   s.el.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-lim]');
@@ -125,7 +125,7 @@ export async function build(U, hue) {
   const NAMES = { plat: 'Plataformas', list: 'Tu lista', trend: 'Tendencias' };
   const order = ['plat', 'list', 'trend'].filter((k) => tab[k].length || (k === 'plat' && !my.length));
   if (order.length) {
-    const tile = (k, x) => '<div class="hx-pt"><a class="im" href="#/' + x.type + '/' + x.id + '"><img src="' + x.p + '" alt="" loading="lazy"></a>' + (k === 'plat' ? '<a class="go" href="' + platUrl(x.plat.name, x.t) + '" target="_blank" rel="noopener" aria-label="Abrir en ' + esc(x.plat.short) + '">' + ic('play', 15) + '</a>' : '') + '<a class="nm" href="#/' + x.type + '/' + x.id + '">' + esc(x.t) + '</a>' + (k === 'plat' ? '<small>' + esc(x.plat.short) + '</small>' : k === 'list' && x.y ? '<small>' + esc(x.y) + '</small>' : '') + '</div>';
+    const tile = (k, x) => '<div class="hx-pt"><a class="im" href="#/' + x.type + '/' + x.id + '"><img src="' + x.p + '" alt="" loading="lazy"></a>' + (k === 'plat' ? '<a class="go" href="' + platUrl(x.plat.name, x.t, x.type, x.id) + '" target="_blank" rel="noopener" aria-label="Abrir en ' + esc(x.plat.short) + '">' + ic('play', 15) + '</a>' : '') + '<a class="nm" href="#/' + x.type + '/' + x.id + '">' + esc(x.t) + '</a>' + (k === 'plat' ? '<small>' + esc(x.plat.short) + '</small>' : k === 'list' && x.y ? '<small>' + esc(x.y) + '</small>' : '') + '</div>';
     parts.push('<div class="hx-shelf"><div class="hx-tabs" role="tablist">' + order.map((k, i) => '<button role="tab" data-tab="' + k + '" class="' + (i ? '' : 'on') + '">' + NAMES[k] + '</button>').join('') + '<button class="hx-act" data-hxp>' + (my.length ? 'Cambiar' : 'Elegir') + '</button></div><div class="hm-row" id="hxsh"></div></div>');
     binds.push((el) => {
       const row = el.querySelector('#hxsh'), act = el.querySelector('[data-hxp]');

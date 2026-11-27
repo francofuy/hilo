@@ -104,7 +104,7 @@ export async function mount(el, { type, id, query }) {
     const mt = '<div class="mt">' + esc(rate + [isTv ? 'Serie' : 'Película', yrs, isTv ? (d.number_of_seasons ? d.number_of_seasons + (d.number_of_seasons === 1 ? ' temporada' : ' temporadas') : '') : rt].filter(Boolean).join(' · ')) + '</div>';
     const back = '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button>';
     const pri = '<div class="pri-row"><button class="btn pri" id="mainbtn" data-a="main"></button></div>';
-    const mp = myPlat(d), openBtn = mp ? '<a class="ab" href="' + platUrl(mp.name, title) + '" target="_blank" rel="noopener">' + ic('play', 24) + '<span>Ver en ' + esc(mp.short) + '</span></a>' : '';
+    const mp = myPlat(d), openBtn = mp ? '<a class="ab" href="' + platUrl(mp.name, title, type, id) + '" target="_blank" rel="noopener">' + ic('play', 24) + '<span>Ver en ' + esc(mp.short) + '</span></a>' : '';
     const acts = '<div class="acts3">' + openBtn + '<button class="ab" id="folbtn" data-a="follow" aria-label="Seguir"></button>' + (isTv ? '<button class="ab" id="recapbtn" data-recap="' + k + '" hidden>' + ic('prev', 24) + '<span>Anteriormente</span></button>' : '') + '<button class="ab" id="offbtn" data-a="off" aria-label="Guardar para ver sin conexión"></button></div>';
     const long = (d.overview || '').length > 150;
     const syn = '<p class="syn' + (long ? ' clamp' : '') + '">' + esc(d.overview || 'Sin sinopsis disponible.') + '</p>' + (long ? '<button class="more" data-a="more">Más</button>' : '');
@@ -181,7 +181,7 @@ export async function mount(el, { type, id, query }) {
     if (based.length) o += '<section class="csec"><h3 class="ch">Obra original</h3><div class="chips">' + based.map((b) => '<span class="src">' + esc(BASED[b] || 'Basada en: ' + b.replace('based on ', '')) + '</span>').join('') + '</div><p class="credit">Próximamente: comparativa con el original (qué cambió y qué no), con spoilers tapados hasta que llegues a ese punto.</p></section>';
     const wp = d['watch/providers'] && d['watch/providers'].results && d['watch/providers'].results[S.region];
     if (wp) {
-      const grp = (label, arr) => arr && arr.length ? '<div class="sub">' + label + ' · ' + S.region + '</div><div class="provs">' + arr.map((p) => '<' + (platUrl(p.provider_name, title) ? 'a href="' + platUrl(p.provider_name, title) + '" target="_blank" rel="noopener"' : 'div') + ' class="prov" title="' + esc(p.provider_name) + '"><img src="' + img(p.logo_path, 'w92') + '" alt="' + esc(p.provider_name) + '" loading="lazy"></' + (platUrl(p.provider_name, title) ? 'a' : 'div') + '>').join('') + '</div>' : '';
+      const grp = (label, arr) => arr && arr.length ? '<div class="sub">' + label + ' · ' + S.region + '</div><div class="provs">' + arr.map((p) => '<' + (platUrl(p.provider_name, title, type, id) ? 'a href="' + platUrl(p.provider_name, title, type, id) + '" target="_blank" rel="noopener"' : 'div') + ' class="prov" title="' + esc(p.provider_name) + '"><img src="' + img(p.logo_path, 'w92') + '" alt="' + esc(p.provider_name) + '" loading="lazy"></' + (platUrl(p.provider_name, title, type, id) ? 'a' : 'div') + '>').join('') + '</div>' : '';
       const body = grp('Streaming', wp.flatrate) + grp('Alquiler', wp.rent) + grp('Compra', wp.buy);
       if (body) o += '<section class="csec"><h3 class="ch">Dónde verla</h3>' + body + '<p class="credit">Disponibilidad: JustWatch, vía TMDB.</p></section>';
     }
