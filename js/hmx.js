@@ -14,7 +14,7 @@ const RT = { movie: 125, ep: 45 }; // estimaciones cuando TMDB no da la duració
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const dur = (m) => { m = Math.round(m / 5) * 5; return m >= 60 ? Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '') : m + ' min'; };
 // botón de play sobre una portada: abre el título en tu plataforma (o, si no hay enlace, el que le des de respaldo)
-const goBtn = (cls, go, fallback, type, id, title) => go ? '<a class="' + cls + '" href="' + go.url + '" target="_blank" rel="noopener"' + platAttr(type, id, title) + ' aria-label="Abrir en ' + esc(go.short) + '">' + ic('play', 15) + '</a>' : (fallback ? '<a class="' + cls + ' off" href="' + fallback + '" aria-label="Ver ficha">' + ic('play', 15) + '</a>' : '');
+const goBtn = (cls, go, fallback, type, id, title) => go ? '<a class="' + cls + '" href="' + go.url + '" target="_blank" rel="noopener"' + platAttr(type, id, title, go.opts) + ' aria-label="Abrir en ' + esc(go.short) + '">' + ic('play', 15) + '</a>' : (fallback ? '<a class="' + cls + ' off" href="' + fallback + '" aria-label="Ver ficha">' + ic('play', 15) + '</a>' : '');
 const rowTitle = (t, sub) => '<h2 class="hm-h">' + t + (sub ? '<small>' + sub + '</small>' : '') + '</h2>';
 
 function context(U) {
@@ -53,7 +53,7 @@ export async function openWhat(U, hue) {
     seen.push(pick.k);
     const go = best(pick.type, pick.id);
     box.innerHTML = '<a class="hx-pick" href="' + pick.href + '" data-close><img src="' + pick.p + '" alt=""><span><b>' + esc(pick.title) + '</b><small>' + esc(pick.sub) + '</small></span></a><div class="hx-pa" id="hxpa">' +
-      (go ? '<a class="btn pri" href="' + go.url + '" target="_blank" rel="noopener"' + platAttr(pick.type, pick.id, pick.title) + '>' + ic('play', 16) + 'Abrir en ' + esc(go.short) + '</a><a class="btn glass" href="' + pick.href + '" data-close>Ver ficha</a>' : '<a class="btn pri" href="' + pick.href + '" data-close>Ver ficha</a>') +
+      (go ? '<a class="btn pri" href="' + go.url + '" target="_blank" rel="noopener"' + platAttr(pick.type, pick.id, pick.title, go.opts) + '>' + ic('play', 16) + 'Abrir' + (go.opts.length > 1 ? '' : ' en ' + esc(go.short)) + '</a><a class="btn glass" href="' + pick.href + '" data-close>Ver ficha</a>' : '<a class="btn pri" href="' + pick.href + '" data-close>Ver ficha</a>') +
       (all.length > 1 ? '<button class="btn glass" data-otra>Otra</button>' : '') + '</div>';
     // si no hay enlace directo pero está en una de tus plataformas, se agrega el botón cuando llegan los datos
     if (!go) try { const d = await api.details(pick.type, pick.id), m = mine(d), pa = s.el.querySelector('#hxpa'); if (m && pa && pa.isConnected && s.el.querySelector('.hx-pick').getAttribute('href') === pick.href) pa.insertAdjacentHTML('afterbegin', '<a class="btn glass" href="' + platUrl(m.name, pick.title, pick.type, pick.id) + '" target="_blank" rel="noopener"' + platAttr(pick.type, pick.id, pick.title) + '>' + ic('play', 16) + 'Abrir en ' + m.short + '</a>'); } catch (e) { /* sin plataforma */ }

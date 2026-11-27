@@ -4,7 +4,7 @@ import * as api from './api.js';
 import { openSheet } from './sheet.js';
 import { esc, ic, img, toast, $ } from './ui.js';
 
-export const VERSION = '1.6.2';
+export const VERSION = '1.7.0';
 const REGIONS = [['AR', 'Argentina'], ['MX', 'México'], ['CL', 'Chile'], ['CO', 'Colombia'], ['UY', 'Uruguay'], ['PE', 'Perú'], ['ES', 'España'], ['BR', 'Brasil'], ['US', 'Estados Unidos']];
 const regionName = (c) => (REGIONS.find((r) => r[0] === c) || [c, c])[1];
 

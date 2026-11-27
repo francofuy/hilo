@@ -2,7 +2,8 @@
 import * as store from './store.js';
 import * as api from './api.js';
 import { swipeRows } from './motion.js';
-import { mine as myPlat, platUrl, platAttr } from './platform.js';
+import { options, platUrl, platAttr } from './platform.js';
+import { launch } from './back.js';
 import * as data from './data.js';
 import { nextEpisode } from './progress.js';
 import { openRecap, openSheet } from './sheet.js';
@@ -56,6 +57,7 @@ export async function mount(el, { type, id, query }) {
   const SC = scenesOf(d);
   el.style.setProperty('--h', hue); document.documentElement.style.setProperty('--h', hue);
   const title = n.title, orig = d.original_title || d.original_name || title, t0 = store.today();
+  const popts = options(type, id, title, d); // dónde verlo entre tus plataformas
 
   /* ---------- datos derivados ---------- */
   const GEN = { 'Action & Adventure': 'Acción y aventura', 'Sci-Fi & Fantasy': 'Ciencia ficción y fantasía', 'War & Politics': 'Bélica y política', Kids: 'Infantil', Soap: 'Telenovela', Talk: 'Entrevistas', News: 'Noticias' };
@@ -104,7 +106,8 @@ export async function mount(el, { type, id, query }) {
     const mt = '<div class="mt">' + esc(rate + [isTv ? 'Serie' : 'Película', yrs, isTv ? (d.number_of_seasons ? d.number_of_seasons + (d.number_of_seasons === 1 ? ' temporada' : ' temporadas') : '') : rt].filter(Boolean).join(' · ')) + '</div>';
     const back = '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button>';
     const pri = '<div class="pri-row"><button class="btn pri" id="mainbtn" data-a="main"></button></div>';
-    const mp = myPlat(d), openBtn = mp ? '<a class="ab" href="' + platUrl(mp.name, title, type, id) + '" target="_blank" rel="noopener"' + platAttr(type, id, title) + '>' + ic('play', 24) + '<span>Ver en ' + esc(mp.short) + '</span></a>' : '';
+    // en las series, el botón de Retomar abre la plataforma (o pregunta dónde); en las películas, esta acción
+    const openBtn = !isTv && popts.length ? '<a class="ab" href="' + popts[0].url + '" target="_blank" rel="noopener"' + platAttr(type, id, title, popts) + '>' + ic('play', 24) + '<span>Ver' + (popts.length > 1 ? '' : ' en ' + esc(popts[0].short)) + '</span></a>' : '';
     const acts = '<div class="acts3">' + openBtn + '<button class="ab" id="folbtn" data-a="follow" aria-label="Seguir"></button>' + (isTv ? '<button class="ab" id="recapbtn" data-recap="' + k + '" hidden>' + ic('prev', 24) + '<span>Anteriormente</span></button>' : '') + '<button class="ab" id="offbtn" data-a="off" aria-label="Guardar para ver sin conexión"></button></div>';
     const long = (d.overview || '').length > 150;
     const syn = '<p class="syn' + (long ? ' clamp' : '') + '">' + esc(d.overview || 'Sin sinopsis disponible.') + '</p>' + (long ? '<button class="more" data-a="more">Más</button>' : '');
@@ -291,7 +294,7 @@ export async function mount(el, { type, id, query }) {
     if (act === 'off') { if (S.off[k]) { delete S.off[k]; store.save(); syncCta(); toast('Quitado de sin conexión'); } else saveOffline(); return; }
     if (act === 'main') {
       if (!isTv) { store.setMovie(k, !store.isMovieWatched(k)); refresh(); toast(store.isMovieWatched(k) ? 'Marcada como vista' : 'Marcada como pendiente'); return; }
-      if (ne && !ne.upcoming) return focusNext(); return switchTab('eps');
+      if (ne && !ne.upcoming) { if (launch(type, id, title, options(type, id, title, d))) return; return focusNext(); } return switchTab('eps');
     }
     if (act === 'exp') { a.closest('.ep').classList.toggle('open'); return; }
     if (act === 'play') { const box = document.createElement('div'); box.className = 'vid playing real'; box.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(a.dataset.k) + '?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="Tráiler" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>'; a.replaceWith(box); return; }

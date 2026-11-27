@@ -3,6 +3,8 @@
 import * as store from './store.js';
 import * as api from './api.js';
 import { nextEpisode } from './progress.js';
+import { openSheet } from './sheet.js';
+import { rememberPref } from './platform.js';
 import { esc, ic, img, epLabel, toast, $ } from './ui.js';
 
 const MIN = 90e3, MAX = 12 * 3600e3;
@@ -42,12 +44,36 @@ async function ask() {
   } finally { busy = false; }
 }
 
+/* ---------- ¿dónde verlo? ---------- */
+const note = (type, id, title) => { const S = store.state(); S.pend = { type, id: +id, t: title || '', at: Date.now() }; store.save(); };
+
+function choose(type, id, title, opts) {
+  const sh = openSheet('<h3>¿Dónde lo ves?</h3><div class="ssub">' + esc(title) + '</div><div class="ch-list">' + opts.map((o, i) =>
+    '<a class="ch-r" href="' + esc(o.u) + '" target="_blank" rel="noopener" data-plat="' + type + ':' + id + '" data-pt="' + esc(title) + '" data-pn="' + esc(o.n) + '" data-chosen="1" data-close>' + ic('play', 18) + '<span>' + esc(o.s) + '</span>' + (i === 0 && (store.state().pref || {})[type + ':' + id] === o.n ? '<em>La última vez</em>' : '') + '</a>').join('') + '</div>', null);
+  return sh;
+}
+
+// abre el título en tu plataforma; si hay más de una, pregunta dónde (desde un botón que no es un enlace)
+export function launch(type, id, title, opts) {
+  if (!opts || !opts.length) return false;
+  if (opts.length > 1) { choose(type, id, title, opts.map((o) => ({ n: o.name, s: o.short, u: o.url }))); return true; }
+  const a = document.createElement('a'); a.href = opts[0].url; a.target = '_blank'; a.rel = 'noopener'; a.dataset.plat = type + ':' + id; a.dataset.pt = title; a.dataset.pn = opts[0].name; a.dataset.chosen = '1';
+  a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500);
+  return true;
+}
+
 export function initBack() {
-  // al tocar un botón que abre una plataforma se anota qué era y cuándo
   document.addEventListener('click', (e) => {
     const a = e.target.closest && e.target.closest('a[data-plat]'); if (!a) return;
-    const [type, id] = a.dataset.plat.split(':'), S = store.state();
-    S.pend = { type, id: +id, t: a.dataset.pt || '', at: Date.now() }; store.save();
+    const [type, id] = a.dataset.plat.split(':');
+    // más de una plataforma: primero se elige
+    if (a.dataset.opts && !a.dataset.chosen) {
+      let opts = null; try { opts = JSON.parse(decodeURIComponent(a.dataset.opts)); } catch (err) { /* se abre el primero */ }
+      if (opts && opts.length > 1) { e.preventDefault(); e.stopPropagation(); choose(type, id, a.dataset.pt || '', opts); return; }
+    }
+    // se anota qué era y cuándo, para preguntar si lo viste al volver
+    note(type, id, a.dataset.pt);
+    if (a.dataset.pn) rememberPref(type, id, a.dataset.pn);
   }, true);
   const check = () => { if (!document.hidden) ask(); };
   document.addEventListener('visibilitychange', check);

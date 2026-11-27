@@ -86,3 +86,10 @@ a.prov{display:block}
 .bk-a .btn{flex:1;height:44px;font-size:14.5px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px}
 .bk-a .btn.pri{flex:2}
 html.lock .bk{opacity:0;pointer-events:none}
+
+/* ¿dónde lo ves? */
+.ch-list{display:grid;margin-top:6px}
+.ch-r{display:flex;align-items:center;gap:14px;padding:16px 2px;border-top:1px solid rgba(255,255,255,.1);font-size:20px;font-weight:700;color:#fff}
+.ch-list .ch-r:first-child{border-top:0}
+.ch-r svg{flex:none;color:var(--a)}
+.ch-r em{margin-left:auto;font-style:normal;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--a)}

@@ -32,13 +32,21 @@ export function initLinks() {
 }
 export const linksReady = initLinks;
 // marca el enlace para que al volver a Hilo se pregunte si lo viste (js/back.js)
-export const platAttr = (type, id, title) => ' data-plat="' + type + ':' + id + '" data-pt="' + String(title || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) + '"';
-// el primer enlace directo al título entre tus plataformas (para abrirlo con un solo toque)
-export function best(type, id) {
-  const by = LINKS && LINKS.region === region().toUpperCase() && LINKS.by[type + ':' + id]; if (!by) return null;
-  const n = (store.state().plat || []).find((x) => by[x]);
-  return n ? { name: n, short: platName(n), url: by[n] } : null;
+export const platAttr = (type, id, title, opts) => ' data-plat="' + type + ':' + id + '" data-pt="' + String(title || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) + '"' + (opts && opts.length > 1 ? ' data-opts="' + encodeURIComponent(JSON.stringify(opts.map((o) => ({ n: o.name, s: o.short, u: o.url })))) + '"' : '');
+// todas las formas de ver un título entre tus plataformas: [{ name, short, url }] (la última que usaste, primero)
+// Sale del catálogo de enlaces directos y, si hay datos de la ficha (d), de las plataformas que informa TMDB.
+export function options(type, id, title, d) {
+  const S = store.state(), mineList = S.plat || [], out = [], seen = new Set(), key = type + ':' + id;
+  const by = LINKS && LINKS.region === region().toUpperCase() && LINKS.by[key];
+  if (by) mineList.forEach((n) => { if (by[n]) { seen.add(n); out.push({ name: n, short: platName(n), url: by[n] }); } });
+  const res = ((d && d['watch/providers'] && d['watch/providers'].results) || {})[S.region || 'UY'] || {};
+  (res.flatrate || []).map((p) => canon(p.provider_name)).forEach((n) => { if (mineList.indexOf(n) > -1 && !seen.has(n)) { seen.add(n); out.push({ name: n, short: platName(n), url: platUrl(n, title, type, id) }); } });
+  const pref = (S.pref || {})[key];
+  return out.sort((x, y) => (y.name === pref) - (x.name === pref));
 }
+export function rememberPref(type, id, name) { const S = store.state(); S.pref = S.pref || {}; S.pref[type + ':' + id] = name; store.save(); }
+// compatibilidad: la primera opción, con la cantidad de opciones
+export function best(type, id) { const o = options(type, id, '', null); return o.length ? { ...o[0], opts: o } : null; }
 const direct = (provider, type, id) => (LINKS && LINKS.region === region().toUpperCase() && LINKS.by[type + ':' + id] && LINKS.by[type + ':' + id][canon(provider)]) || null;
 export const platUrl = (provider, title, type, id) => {
   const dl = direct(provider, type, id); if (dl) return dl;
