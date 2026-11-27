@@ -6,7 +6,7 @@ import * as uni from './universe.js';
 import * as search from './search.js';
 import * as settings from './settings.js';
 import { ic, toast, $, $$ } from './ui.js';
-import { initNav, initBlurUp, initLock } from './motion.js';
+import { initNav, initBlurUp, initLock, initDragScroll } from './motion.js';
 import { initLinks } from './platform.js';
 import { initBack } from './back.js';
 
@@ -74,6 +74,7 @@ async function route() {
 initLinks();
 initBack();
 initLock();
+initDragScroll();
 initNav();
 initBlurUp();
 window.addEventListener('hashchange', route);

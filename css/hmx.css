@@ -1,5 +1,5 @@
 /* ---------- Inicio: lo que va debajo de las portadas ---------- */
-.hm-body{display:grid;gap:20px}
+.hm-body{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
 .hm-body>*{min-width:0}
 .hm-body>.hm-h{margin-bottom:-11px}
 .hm-h{white-space:nowrap}

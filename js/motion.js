@@ -17,6 +17,32 @@ export function initLock() {
   document.addEventListener('selectstart', (e) => { if (!field(e.target)) e.preventDefault(); });
 }
 
+/* ---------- arrastrar con el mouse las filas que se desplazan de costado ----------
+   Con el dedo ya se desplazan solas; con el mouse (la app abierta en una computadora) hay que arrastrar a mano. */
+export function initDragScroll() {
+  let st = null, block = 0;
+  const scroller = (el) => { for (; el && el !== document.body; el = el.parentElement) { const o = getComputedStyle(el).overflowX; if ((o === 'auto' || o === 'scroll') && el.scrollWidth > el.clientWidth + 2) return el; } return null; };
+  document.addEventListener('dragstart', (e) => e.preventDefault()); // sin el "fantasma" al arrastrar imágenes y enlaces
+  document.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    const el = scroller(e.target); if (!el) return;
+    st = { el, x: e.clientX, left: el.scrollLeft, moved: false, id: e.pointerId };
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!st || e.pointerId !== st.id) return;
+    const dx = e.clientX - st.x;
+    if (!st.moved && Math.abs(dx) < 6) return;
+    if (!st.moved) { st.moved = true; st.el.style.scrollSnapType = 'none'; st.el.style.cursor = 'grabbing'; try { st.el.setPointerCapture(e.pointerId); } catch (err) { /* nada */ } }
+    st.el.scrollLeft = st.left - dx;
+  });
+  const end = () => {
+    if (!st) return; const s = st; st = null;
+    if (s.moved) { block = Date.now() + 120; s.el.style.cursor = ''; s.el.style.scrollSnapType = ''; }
+  };
+  document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
+  document.addEventListener('click', (e) => { if (Date.now() < block) { e.preventDefault(); e.stopPropagation(); } }, true);
+}
+
 /* ---------- barra de abajo: solo íconos; desaparece al bajar y vuelve al subir ---------- */
 export function initNav() {
   const root = document.documentElement, view = $('#view');
