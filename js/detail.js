@@ -294,7 +294,7 @@ export async function mount(el, { type, id, query }) {
     if (act === 'off') { if (S.off[k]) { delete S.off[k]; store.save(); syncCta(); toast('Quitado de sin conexión'); } else saveOffline(); return; }
     if (act === 'main') {
       if (!isTv) { store.setMovie(k, !store.isMovieWatched(k)); refresh(); toast(store.isMovieWatched(k) ? 'Marcada como vista' : 'Marcada como pendiente'); return; }
-      if (ne && !ne.upcoming) { if (launch(type, id, title, options(type, id, title, d))) return; return focusNext(); } return switchTab('eps');
+      if (ne && !ne.upcoming) { if (launch(type, id, title, options(type, id, title, d, { s: ne.s, e: ne.e }))) return; return focusNext(); } return switchTab('eps');
     }
     if (act === 'exp') { a.closest('.ep').classList.toggle('open'); return; }
     if (act === 'play') { const box = document.createElement('div'); box.className = 'vid playing real'; box.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(a.dataset.k) + '?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="Tráiler" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>'; a.replaceWith(box); return; }

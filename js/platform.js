@@ -23,30 +23,39 @@ const URLS = {
 // Enlaces directos al título (data/links.json, armado con tools/build-links.py): abren la app en ese título.
 // Formato compacto: { prefix: {código: inicio del enlace}, links: { 'tv:1402': { código: resto del enlace } } }
 const CODE = { n: 'Netflix', d: 'Disney Plus', h: 'Max', p: 'Amazon Prime Video', a: 'Apple TV Plus', c: 'Paramount Plus' };
-let LINKS = null, READY = null;
+let LINKS = null, EPS = null, READY = null;
+const j = (u) => fetch(u).then((r) => r.json());
 export function initLinks() {
-  return READY || (READY = fetch('data/links.json').then((r) => r.json()).then((d) => {
+  return READY || (READY = Promise.all([j('data/links.json'), j('data/episodes.json').catch(() => null)]).then(([d, ep]) => {
     LINKS = { region: d.region, by: {} };
     Object.keys(d.links || {}).forEach((k) => { const o = LINKS.by[k] = {}; Object.keys(d.links[k]).forEach((c) => { const v = d.links[k][c]; if (CODE[c]) o[CODE[c]] = v.indexOf('http') === 0 ? v : (d.prefix[c] || '') + v; }); });
-  }).catch(() => { LINKS = null; }));
+    EPS = ep && ep.region === d.region ? ep : null;
+  }).catch(() => { LINKS = null; EPS = null; }));
+}
+// enlace directo a un episodio (T, E) en una plataforma, si existe
+const CODE_OF = () => Object.keys(CODE).reduce((m, c) => { m[CODE[c]] = c; return m; }, {});
+function epUrl(key, name, ep) {
+  if (!EPS || !ep) return null;
+  const c = CODE_OF()[name], arr = EPS.eps[key] && EPS.eps[key][c] && EPS.eps[key][c][String(ep.s)], v = arr && arr[ep.e - 1];
+  return v ? (v.indexOf('http') === 0 ? v : (EPS.prefix[c] || '') + v) : null;
 }
 export const linksReady = initLinks;
 // marca el enlace para que al volver a Hilo se pregunte si lo viste (js/back.js)
 export const platAttr = (type, id, title, opts) => ' data-plat="' + type + ':' + id + '" data-pt="' + String(title || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) + '"' + (opts && opts.length > 1 ? ' data-opts="' + encodeURIComponent(JSON.stringify(opts.map((o) => ({ n: o.name, s: o.short, u: o.url })))) + '"' : '');
 // todas las formas de ver un título entre tus plataformas: [{ name, short, url }] (la última que usaste, primero)
 // Sale del catálogo de enlaces directos y, si hay datos de la ficha (d), de las plataformas que informa TMDB.
-export function options(type, id, title, d) {
+export function options(type, id, title, d, ep) {
   const S = store.state(), mineList = S.plat || [], out = [], seen = new Set(), key = type + ':' + id;
   const by = LINKS && LINKS.region === region().toUpperCase() && LINKS.by[key];
-  if (by) mineList.forEach((n) => { if (by[n]) { seen.add(n); out.push({ name: n, short: platName(n), url: by[n] }); } });
+  if (by) mineList.forEach((n) => { if (by[n]) { seen.add(n); out.push({ name: n, short: platName(n), url: epUrl(key, n, ep) || by[n], ep: !!epUrl(key, n, ep) }); } });
   const res = ((d && d['watch/providers'] && d['watch/providers'].results) || {})[S.region || 'UY'] || {};
-  (res.flatrate || []).map((p) => canon(p.provider_name)).forEach((n) => { if (mineList.indexOf(n) > -1 && !seen.has(n)) { seen.add(n); out.push({ name: n, short: platName(n), url: platUrl(n, title, type, id) }); } });
+  (res.flatrate || []).map((p) => canon(p.provider_name)).forEach((n) => { if (mineList.indexOf(n) > -1 && !seen.has(n)) { seen.add(n); out.push({ name: n, short: platName(n), url: epUrl(key, n, ep) || platUrl(n, title, type, id) }); } });
   const pref = (S.pref || {})[key];
   return out.sort((x, y) => (y.name === pref) - (x.name === pref));
 }
 export function rememberPref(type, id, name) { const S = store.state(); S.pref = S.pref || {}; S.pref[type + ':' + id] = name; store.save(); }
 // compatibilidad: la primera opción, con la cantidad de opciones
-export function best(type, id) { const o = options(type, id, '', null); return o.length ? { ...o[0], opts: o } : null; }
+export function best(type, id, ep) { const o = options(type, id, '', null, ep); return o.length ? { ...o[0], opts: o } : null; }
 const direct = (provider, type, id) => (LINKS && LINKS.region === region().toUpperCase() && LINKS.by[type + ':' + id] && LINKS.by[type + ':' + id][canon(provider)]) || null;
 export const platUrl = (provider, title, type, id) => {
   const dl = direct(provider, type, id); if (dl) return dl;

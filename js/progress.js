@@ -36,3 +36,15 @@ export async function recapEpisodes(k, limit = 4) {
   await Promise.all(seasons.map(async (n) => { try { data[n] = (await api.season(id, n)).episodes || []; } catch (e) { data[n] = []; } }));
   return last.map(([s, e]) => { const ep = (data[s] || []).find((x) => x.episode_number === e); return { s, e, name: ep ? ep.name : 'Episodio ' + e, overview: ep ? ep.overview : '', still: ep ? ep.still_path : null }; });
 }
+
+/* Próximo capítulo sin ver, calculado con lo que ya está guardado (sin red): { s, e } | null */
+export function nextSync(k) {
+  const m = store.meta(k); if (!m || !m.seasons) return null;
+  const t = store.today();
+  for (const [n, count, air] of m.seasons) {
+    if (store.seasonCount(k, n) >= count) continue;
+    if (!air || air > t) return null;
+    for (let e = 1; e <= count; e++) if (!store.epDone(k, n, e)) return { s: n, e };
+  }
+  return null;
+}

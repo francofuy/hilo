@@ -4,7 +4,7 @@
 import * as store from './store.js';
 import * as api from './api.js';
 import * as taste from './taste.js';
-import { nextEpisode } from './progress.js';
+import { nextEpisode, nextSync } from './progress.js';
 import { openSheet } from './sheet.js';
 import { stats } from './data.js';
 import { PLATS, platName, platId, platUrl, mine, best, platAttr } from './platform.js';
@@ -29,7 +29,7 @@ export async function openWhat(U, hue) {
   const { t0, tracked, uniTracked, prog } = context(U);
   const cand = async (limit) => {
     const out = [];
-    if (limit >= 50) for (const k of prog) { const m = store.meta(k); if (!m || !m.p) continue; try { const ne = await nextEpisode(k); if (ne && !ne.upcoming) out.push({ k, type: 'tv', id: m.id, title: m.t, sub: 'Un capítulo · ' + epLabel(ne.s, ne.e) + ' · ' + dur(RT.ep), href: '#/tv/' + m.id + '?go=next', p: img(m.p, 'w342') }); } catch (e) { /* nada */ } }
+    if (limit >= 50) for (const k of prog) { const m = store.meta(k); if (!m || !m.p) continue; try { const ne = await nextEpisode(k); if (ne && !ne.upcoming) out.push({ k, type: 'tv', id: m.id, title: m.t, sub: 'Un capítulo · ' + epLabel(ne.s, ne.e) + ' · ' + dur(RT.ep), href: '#/tv/' + m.id + '?go=next', p: img(m.p, 'w342'), ep: { s: ne.s, e: ne.e } }); } catch (e) { /* nada */ } }
     const pool = new Set(store.listed());
     tracked.forEach((k) => { if (store.frac(k) < 0.999) pool.add(k); });
     uniTracked.forEach((uid) => U.byId[uid].items.forEach((i) => { if (i.k === 'movie' && (!i.d || i.d <= t0) && store.frac(i.key) < 0.999) pool.add(i.key); }));
@@ -51,7 +51,7 @@ export async function openWhat(U, hue) {
     const box = s.el.querySelector('#hxr'), all = await cand(lim), pool = all.filter((x) => seen.indexOf(x.k) < 0), from = pool.length ? pool : all, pick = from[Math.floor(Math.random() * from.length)];
     if (!pick) { box.innerHTML = '<p class="hx-none">Todavía no tengo nada tuyo que entre en ese tiempo. Seguí algunas series o películas y volvé a probar.</p>'; return; }
     seen.push(pick.k);
-    const go = best(pick.type, pick.id);
+    const go = best(pick.type, pick.id, pick.ep);
     box.innerHTML = '<a class="hx-pick" href="' + pick.href + '" data-close><img src="' + pick.p + '" alt=""><span><b>' + esc(pick.title) + '</b><small>' + esc(pick.sub) + '</small></span></a><div class="hx-pa" id="hxpa">' +
       (go ? '<a class="btn pri" href="' + go.url + '" target="_blank" rel="noopener"' + platAttr(pick.type, pick.id, pick.title, go.opts) + '>' + ic('play', 16) + 'Abrir' + (go.opts.length > 1 ? '' : ' en ' + esc(go.short)) + '</a><a class="btn glass" href="' + pick.href + '" data-close>Ver ficha</a>' : '<a class="btn pri" href="' + pick.href + '" data-close>Ver ficha</a>') +
       (all.length > 1 ? '<button class="btn glass" data-otra>Otra</button>' : '') + '</div>';
@@ -107,7 +107,7 @@ export async function build(U, hue) {
     const cards = prog.slice(0, 8).map((k) => {
       const m = store.meta(k), f = store.frac(k), days = (Date.now() - (S.last[k] || 0)) / 864e5;
       const fh = '#/' + m.type + '/' + m.id + '?go=next';
-      return '<div class="hx-c"><a class="im" href="' + fh + '">' + (m.b ? '<img src="' + img(m.b, 'w780') + '" alt="">' : '') + '<div class="pb"><u style="width:' + Math.round(f * 100) + '%"></u></div></a>' + goBtn('pl', best(m.type, m.id), fh, m.type, m.id, m.t) + '<a class="tt" href="' + fh + '">' +
+      return '<div class="hx-c"><a class="im" href="' + fh + '">' + (m.b ? '<img src="' + img(m.b, 'w780') + '" alt="">' : '') + '<div class="pb"><u style="width:' + Math.round(f * 100) + '%"></u></div></a>' + goBtn('pl', best(m.type, m.id, nextSync(k)), fh, m.type, m.id, m.t) + '<a class="tt" href="' + fh + '">' +
         '<b>' + esc(m.t) + '</b><small><span data-hxnx="' + k + '">&nbsp;</span></small><small class="ago' + (days >= 14 ? ' stale' : '') + '">' + (days >= 14 ? 'Hace ' + Math.floor(days) + ' días que no la ves' : S.last[k] ? 'La viste ' + ago(S.last[k]) : '') + '</small></a></div>';
     }).join('');
     parts.push(rowTitle('Seguir viendo', week) + '<div class="hm-row">' + cards + '</div>');

@@ -6,6 +6,7 @@ import * as data from './data.js';
 import * as taste from './taste.js';
 import * as hmx from './hmx.js';
 import { linksReady, best, platAttr } from './platform.js';
+import { nextSync } from './progress.js';
 import { nextEpisode } from './progress.js';
 import { openRecap } from './sheet.js';
 import { esc, ic, img, epLabel, fmtDate, hueOf, $, $$ } from './ui.js';
@@ -43,7 +44,7 @@ export async function mount(el) {
     fresh.map((f) => ({ kind: 'new', key: f.key, f, a: f.a, ps: f.src })));
   const slides = slidesData.map((s) => {
     if (s.kind === 'resume') {
-      const go0 = best(s.m.type, s.m.id);
+      const go0 = best(s.m.type, s.m.id, nextSync(s.key));
       return '<div class="hm-sl" data-key="' + s.key + '"><div class="fs-in"><div class="kk">Seguir viendo</div><a href="' + route(s.m) + '?go=next">' + logoOrTitle(s.a, s.m.t) + '</a><div class="mt" data-nx="' + s.key + '">&nbsp;</div>' +
         '<div class="pri-row">' + (go0 ? '<a class="btn pri" href="' + go0.url + '" target="_blank" rel="noopener"' + platAttr(s.m.type, s.m.id, s.m.t, go0.opts) + '>' + ic('play', 18) + '<span class="ell">Retomar' + (go0.opts.length > 1 ? '' : ' en ' + esc(go0.short)) + '</span></a>' : '<a class="btn pri" href="' + route(s.m) + '?go=next">' + ic('play', 18) + 'Retomar</a>') + '</div>' +
         '<div class="acts3">' + (go0 ? '<a class="ab" href="' + route(s.m) + '?go=next">' + ic('info', 24) + '<span>Ficha</span></a>' : '') + '<button class="ab" data-recap="' + s.key + '">' + ic('prev', 24) + '<span>Anteriormente</span></button><button class="ab" data-hxwhat>' + ic('shuffle', 24) + '<span>¿Qué veo?</span></button></div></div></div>';
