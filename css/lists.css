@@ -8,7 +8,7 @@
 .ls-fan i:nth-child(1){--tx:-26px;--r:-12deg}.ls-fan i:nth-child(2){--tx:0px;--r:0deg;--ty:-5px;z-index:2}.ls-fan i:nth-child(3){--tx:26px;--r:12deg}
 .ls-fan.n1 i:nth-child(1){--tx:0px;--r:0deg;--ty:-5px}
 .ls-fan.n2 i:nth-child(1){--tx:-15px;--r:-8deg}.ls-fan.n2 i:nth-child(2){--tx:15px;--r:8deg;--ty:-3px}
-.ls-fan i.empty{display:grid;place-items:center;background:none;border:2px dashed rgba(255,255,255,.28);box-shadow:none;color:rgba(255,255,255,.6);--tx:0px;--r:0deg}
+.ls-fan i.empty{display:flex;align-items:center;justify-content:center;height:81px;aspect-ratio:auto;background:none;border:2px dashed rgba(255,255,255,.28);box-shadow:none;color:rgba(255,255,255,.6);--tx:0px;--r:0deg}
 @keyframes ls-spread{from{opacity:0;transform:translateY(10px) scale(.86)}to{opacity:1;transform:translate(var(--tx,0),var(--ty,0)) rotate(var(--r,0)) scale(1)}}
 .ls-card{display:grid;align-content:start;justify-items:center;gap:3px;flex:none;width:124px;text-align:center;transition:transform .35s cubic-bezier(.22,1,.36,1)}
 .ls-card:active{transform:scale(.96)}
@@ -77,7 +77,7 @@
 .ls-pr .tx{display:grid;min-width:0}.ls-pr b{font-size:15px}.ls-pr small{font-size:12.5px;color:var(--fg2)}
 .ls-fan.sm{width:48px;height:48px;margin:0}
 .ls-fan.sm i{width:26px;margin-left:-13px;border-radius:5px;bottom:2px;animation:none;opacity:1;transform:translate(calc(var(--tx,0px)*.35),var(--ty,0px)) rotate(var(--r,0deg));box-shadow:0 3px 7px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.16)}
-.ls-fan.sm i.empty{border-width:1.5px}
+.ls-fan.sm i.empty{border-width:1.5px;height:39px}
 .ls-tk{width:26px;height:26px}.ls-tk circle{fill:none;stroke:rgba(255,255,255,.3);stroke-width:1.8;transition:fill .3s,stroke .3s}
 .ls-tk path{fill:none;stroke:#0b0b0e;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .35s .05s cubic-bezier(.22,1,.36,1)}
 .ls-pr.on .ls-tk circle,.ls-fr.on .ls-tk circle{fill:var(--a);stroke:var(--a)}.ls-pr.on .ls-tk path,.ls-fr.on .ls-tk path{stroke-dashoffset:0}
