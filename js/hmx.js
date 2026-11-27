@@ -92,7 +92,7 @@ export async function build(U, hue) {
   if (cd) {
     const days = Math.max(1, daysUntil(cd.fut.d));
     let min = 0, left = 0;
-    cd.u.items.forEach((i) => { if (i === cd.fut || (i.d && i.d > t0)) return; const f = store.frac(i.key, i.eps); if (f >= 0.999) return; left++; const m = store.meta(i.key) || {}; min += (1 - f) * (i.k === 'movie' ? (m.rt || RT.movie) : (i.eps || m.tot || 8) * RT.ep); });
+    cd.u.items.forEach((i) => { if (i === cd.fut || (i.d && i.d > t0)) return; const f = store.frac(i.key, i.eps); if (f >= 0.999 || (i.o && f === 0)) return; left++; const m = store.meta(i.key) || {}; min += (1 - f) * (i.k === 'movie' ? (m.rt || RT.movie) : (i.eps || m.tot || 8) * RT.ep); });
     const per = min / days, bg = img(cd.fut.b, 'w780');
     tiles.push('<div class="hx-ew"><a class="hx-e hx-cd" href="#/universe/' + cd.u.id + '">' + (bg ? '<img class="bg" src="' + bg + '" alt="">' : '') + '<span class="bd">Cuenta regresiva</span><span class="tx"><span class="big"><b>' + days + '</b><i>' + (days === 1 ? 'día' : 'días') + ' para</i></span><strong>' + esc(cd.fut.t) + '</strong>' +
       '<span class="thr"><u style="width:' + Math.round(cd.s.f * 100) + '%"></u></span><small>' + (left ? left + (left === 1 ? ' título' : ' títulos') + ' · ' + dur(min) + ' · ' + dur(per) + '/día' : 'Todo lo anterior, visto') + '</small></span></a>' + calBtn(cd.fut.d, cd.fut.t, 'Estreno · ' + cd.u.title) + '</div>');

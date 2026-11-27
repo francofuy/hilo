@@ -1,10 +1,23 @@
-// Universos curados (data/universes.json, generado con tools/build-universes.mjs).
+// Universos curados (data/universes.json y data/orders.json, generados con tools/build-universes.mjs a partir de tools/universes-data.mjs).
 import { kid, frac, today } from './store.js';
 import { hueOf } from './ui.js';
 
 let cache = null;
-const COVER = { marvel: 'movie:299534', twd: 'tv:1402', starwars: 'movie:11', breakingbad: 'tv:1396', got: 'tv:1399',
-  wizarding: 'movie:671', middleearth: 'movie:120', dune: 'movie:438631', theboys: 'tv:76479', alien: 'movie:348' };
+const COVER = {
+  marvel: 'movie:299534', twd: 'tv:1402', starwars: 'movie:11', breakingbad: 'tv:1396',
+  got: 'tv:1399', wizarding: 'movie:671', middleearth: 'movie:120', dune: 'movie:438631',
+  theboys: 'tv:76479', alien: 'movie:348', xmen: 'movie:127585', spiderman: 'movie:634649',
+  dc: 'movie:1061474', arrowverse: 'tv:1412', batman: 'movie:155', hungergames: 'movie:70160',
+  predator: 'movie:106', fastfurious: 'movie:168259', missionimpossible: 'movie:353081', johnwick: 'movie:603692',
+  matrix: 'movie:603', terminator: 'movie:280', planetapes: 'movie:653346', jurassic: 'movie:329',
+  monsterverse: 'movie:399566', conjuring: 'movie:138843', startrek: 'tv:67198', pirates: 'movie:22',
+  indiana: 'movie:85', transformers: 'movie:1858', toystory: 'movie:862', shrek: 'movie:808',
+  dragon: 'movie:10191', avatar: 'movie:19995', airbender: 'tv:246', strangerthings: 'tv:66732',
+  yellowstone: 'tv:73586', peaky: 'tv:60574', dexter: 'tv:1405', moneyheist: 'tv:71446',
+  narcos: 'tv:63351', vikings: 'tv:44217', witcher: 'tv:71912', karatekid: 'tv:77169',
+  rocky: 'movie:1374', chucky: 'tv:90462', hannibal: 'movie:274', purge: 'movie:158015',
+  despicable: 'movie:20352'
+};
 
 export function load() {
   if (cache) return cache;
@@ -73,7 +86,15 @@ export function stats(u) {
   return { done, part, total: items.length, f: items.length ? sum / items.length : 0 };
 }
 
-const UHUE = { marvel: 215, twd: 28, starwars: 48, breakingbad: 130, got: 12, wizarding: 280, middleearth: 150, dune: 34, theboys: 352, alien: 195 };
+const UHUE = {
+  marvel: 215, twd: 28, starwars: 48, breakingbad: 130, got: 12, wizarding: 280, middleearth: 150, dune: 34,
+  theboys: 352, alien: 195, xmen: 48, spiderman: 355, dc: 220, arrowverse: 165, batman: 250, hungergames: 32,
+  predator: 120, fastfurious: 18, missionimpossible: 205, johnwick: 340, matrix: 140, terminator: 200, planetapes: 85, jurassic: 100,
+  monsterverse: 180, conjuring: 350, startrek: 225, pirates: 40, indiana: 36, transformers: 8, toystory: 45, shrek: 110,
+  dragon: 195, avatar: 190, airbender: 170, strangerthings: 0, yellowstone: 25, peaky: 20, dexter: 355, moneyheist: 5,
+  narcos: 150, vikings: 210, witcher: 45, karatekid: 15, rocky: 10, chucky: 0, hannibal: 345, purge: 0,
+  despicable: 55
+};
 export const uhue = (u) => (UHUE[u.id] != null ? UHUE[u.id] : (u.cover ? (u.cover.id * 47) % 360 : 215));
 
 /* tono de un título: el de su universo si pertenece a uno, si no el de su género */

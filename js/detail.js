@@ -154,7 +154,7 @@ export async function mount(el, { type, id, query }) {
       }
     });
     const c = d.belongs_to_collection;
-    if (c) o += '<a class="st-r un-link" href="#/collection/' + c.id + '"><span class="l">Colección · ' + esc(c.name.replace(/\s*[-–:]?\s*(Collection|Colección|Saga|Trilogía)\s*$/i, '').replace(/\s*[-–:]\s*$/, '')) + '</span>' + ic('chev', 16) + '</a>';
+    if (c && !uids.length) o += '<a class="st-r un-link" href="#/collection/' + c.id + '"><span class="l">Colección · ' + esc(c.name.replace(/\s*[-–:]?\s*(Collection|Colección|Saga|Trilogía)\s*$/i, '').replace(/\s*[-–:]\s*$/, '')) + '</span>' + ic('chev', 16) + '</a>';
     const recs = ((d.recommendations && d.recommendations.results) || []).filter((r) => r.poster_path).slice(0, 14);
     if (recs.length) o += '<div class="sub">Si te gustó esto</div><div class="row" style="margin:0 calc(-1*var(--gr)) 0 calc(-1*var(--gl))">' + recs.map((r) => posterCard(normItem(r, type), { w: 118 })).join('') + '</div>';
     if (!o) o = '<div class="note">' + ic('info', 18) + '<span>No hay conexiones cargadas para este título todavía.</span></div>';

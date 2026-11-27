@@ -30,7 +30,7 @@ const EASY = 60; // minutos por día cuando no hay apuro
 function blocksOf(c, t0) {
   const S = store.state(), out = [];
   c.order.forEach((i0) => {
-    if (i0.d && i0.d > t0) return; const f = store.frac(i0.key, i0.eps); if (f >= 0.999) return; const i = Object.assign({}, i0, { u: c.uid ? [c.uid] : [] }), m = store.meta(i.key) || {};
+    if (i0.d && i0.d > t0) return; const f = store.frac(i0.key, i0.eps); if (f >= 0.999 || (i0.o && f === 0)) return; /* lo opcional que no empezaste queda afuera del plan */ const i = Object.assign({}, i0, { u: c.uid ? [c.uid] : [] }), m = store.meta(i.key) || {};
     if (i.k === 'movie') out.push({ i, min: m.rt || RT.movie });
     else { const eps = i.eps || m.tot || 8, left = Math.max(1, eps - store.countWatched(i.key)); out.push({ i, tv: 1, eps: left, from: nextSync(i.key) || { s: 1, e: store.countWatched(i.key) + 1 } }); }
   });

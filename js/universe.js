@@ -11,7 +11,7 @@ const locked = (i) => !!(i.d && i.d > store.today());
 const frac = (i) => store.frac(i.key, i.eps);
 const hereOf = (ord) => ord.find((i) => !locked(i) && frac(i) < 0.999);
 function stats(items) { const rel = items.filter((i) => !locked(i)); let done = 0, part = 0, sum = 0; rel.forEach((i) => { const f = frac(i); sum += f; if (f >= 0.999) done++; else if (f > 0) part++; }); return { done, part, total: rel.length, f: rel.length ? sum / rel.length : 0 }; }
-const meta = (i, role) => (locked(i) ? 'Estreno ' + fmtDate(i.d) : [i.k === 'movie' ? 'Película' : 'Serie', role ? role.label : (i.rl || ''), i.y].filter(Boolean).join(' · '));
+const meta = (i, role) => (locked(i) ? 'Estreno ' + fmtDate(i.d) : [i.k === 'movie' ? 'Película' : 'Serie', role ? role.label : (i.rl || ''), i.o ? 'Opcional' : '', i.y].filter(Boolean).join(' · '));
 const firstSentence = (t) => { const m = /^.*?[.!?](\s|$)/.exec(t || ''); return (m ? m[0] : t || '').trim(); };
 const checkSvg = ic('check', 16, 3);
 const goBack = () => { if (history.length > 1) history.back(); else location.hash = '#/universes'; };
