@@ -66,3 +66,11 @@
 .hx-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .hx-slot{display:contents}
 a.prov{display:block}
+
+/* un toque: el play de cada portada abre la plataforma */
+.hx-c{position:relative}
+.hx-c .im{display:block;position:relative;aspect-ratio:16/10;border-radius:14px;overflow:hidden;background:#1a1a20;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.hx-c .tt{display:block}
+.hx-c .pl{position:absolute;right:9px;top:80px;z-index:2;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#0b0b0e;background:rgba(243,241,236,.95);box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.hx-c .pl.off,.hx-pt .go.off{background:rgba(18,18,26,.5);color:#fff;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+.hx-pt small.why{color:var(--a);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

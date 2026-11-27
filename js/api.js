@@ -73,7 +73,7 @@ export async function collection(id) {
 export const search = (q) => call('/search/multi', { query: q, include_adult: 'false' });
 export const trending = () => call('/trending/all/week');
 // lo más popular de una plataforma en tu país (providerId = id de proveedor de TMDB)
-export const discover = (type, providerId, region) => call('/discover/' + type, { watch_region: region || 'AR', with_watch_providers: providerId, with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc' });
+export const discover = (type, providerId, region) => call('/discover/' + type, { watch_region: region || 'UY', with_watch_providers: providerId, with_watch_monetization_types: 'flatrate', sort_by: 'popularity.desc' });
 export const clearMemory = () => mem.clear();
 
 /* ---------- arte, recomendaciones y datos mínimos (portadas del Inicio, Universos y Buscar) ---------- */

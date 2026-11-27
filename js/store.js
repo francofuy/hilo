@@ -1,10 +1,12 @@
 // Estado de Hilo: todo vive en el teléfono (localStorage). La API key también,
 // así el repositorio público nunca contiene secretos.
 const KEY = 'hilo:v1';
-const DEF = () => ({ v: 1, key: '', region: 'AR', follow: {}, watched: {}, last: {}, rate: {}, off: {}, meta: {}, unis: {}, uorder: {}, fx: 'full' });
+const DEF = () => ({ v: 1, key: '', region: 'UY', follow: {}, watched: {}, last: {}, rate: {}, off: {}, meta: {}, unis: {}, uorder: {}, fx: 'full' });
 
 let S;
 try { S = { ...DEF(), ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { S = DEF(); }
+// antes el país por defecto era Argentina: si nunca lo elegiste vos, pasa a Uruguay
+if (!S.regionSet && S.region === 'AR') { S.region = 'UY'; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* nada */ } }
 
 export const state = () => S;
 export function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* modo privado o sin espacio */ } }
@@ -14,7 +16,7 @@ export const today = () => { const d = new Date(); return d.getFullYear() + '-' 
 
 /* ---------- ajustes ---------- */
 export function setKey(k) { S.key = k.trim(); save(); }
-export function setRegion(r) { S.region = r; save(); }
+export function setRegion(r) { S.region = r; S.regionSet = 1; save(); }
 export function setFx(v) { S.fx = v; save(); }
 
 /* ---------- metadatos mínimos (para dibujar el inicio sin red) ---------- */

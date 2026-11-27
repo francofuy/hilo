@@ -7,12 +7,14 @@ import * as taste from './taste.js';
 import { nextEpisode } from './progress.js';
 import { openSheet } from './sheet.js';
 import { stats } from './data.js';
-import { PLATS, platName, platId, platUrl, mine } from './platform.js';
+import { PLATS, platName, platId, platUrl, mine, best } from './platform.js';
 import { esc, ic, img, ago, daysUntil, epLabel } from './ui.js';
 
 const RT = { movie: 125, ep: 45 }; // estimaciones cuando TMDB no da la duración
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const dur = (m) => { m = Math.round(m / 5) * 5; return m >= 60 ? Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '') : m + ' min'; };
+// botón de play sobre una portada: abre el título en tu plataforma (o, si no hay enlace, el que le des de respaldo)
+const goBtn = (cls, go, fallback) => go ? '<a class="' + cls + '" href="' + go.url + '" target="_blank" rel="noopener" aria-label="Abrir en ' + esc(go.short) + '">' + ic('play', 15) + '</a>' : (fallback ? '<a class="' + cls + ' off" href="' + fallback + '" aria-label="Ver ficha">' + ic('play', 15) + '</a>' : '');
 const rowTitle = (t, sub) => '<h2 class="hm-h">' + t + (sub ? '<small>' + sub + '</small>' : '') + '</h2>';
 
 function context(U) {
@@ -49,9 +51,12 @@ export async function openWhat(U, hue) {
     const box = s.el.querySelector('#hxr'), all = await cand(lim), pool = all.filter((x) => seen.indexOf(x.k) < 0), from = pool.length ? pool : all, pick = from[Math.floor(Math.random() * from.length)];
     if (!pick) { box.innerHTML = '<p class="hx-none">Todavía no tengo nada tuyo que entre en ese tiempo. Seguí algunas series o películas y volvé a probar.</p>'; return; }
     seen.push(pick.k);
-    box.innerHTML = '<a class="hx-pick" href="' + pick.href + '" data-close><img src="' + pick.p + '" alt=""><span><b>' + esc(pick.title) + '</b><small>' + esc(pick.sub) + '</small></span></a><div class="hx-pa" id="hxpa"><a class="btn pri" href="' + pick.href + '" data-close>Ver ficha</a>' + (all.length > 1 ? '<button class="btn glass" data-otra>Otra</button>' : '') + '</div>';
-    // si está en una de tus plataformas, un botón para abrirla (se completa cuando llegan los datos)
-    try { const d = await api.details(pick.type, pick.id), m = mine(d), pa = s.el.querySelector('#hxpa'); if (m && pa && pa.isConnected && s.el.querySelector('.hx-pick').getAttribute('href') === pick.href) pa.insertAdjacentHTML('afterbegin', '<a class="btn glass" href="' + platUrl(m.name, pick.title, pick.type, pick.id) + '" target="_blank" rel="noopener">' + ic('play', 16) + 'Abrir en ' + m.short + '</a>'); } catch (e) { /* sin plataforma */ }
+    const go = best(pick.type, pick.id);
+    box.innerHTML = '<a class="hx-pick" href="' + pick.href + '" data-close><img src="' + pick.p + '" alt=""><span><b>' + esc(pick.title) + '</b><small>' + esc(pick.sub) + '</small></span></a><div class="hx-pa" id="hxpa">' +
+      (go ? '<a class="btn pri" href="' + go.url + '" target="_blank" rel="noopener">' + ic('play', 16) + 'Abrir en ' + esc(go.short) + '</a><a class="btn glass" href="' + pick.href + '" data-close>Ver ficha</a>' : '<a class="btn pri" href="' + pick.href + '" data-close>Ver ficha</a>') +
+      (all.length > 1 ? '<button class="btn glass" data-otra>Otra</button>' : '') + '</div>';
+    // si no hay enlace directo pero está en una de tus plataformas, se agrega el botón cuando llegan los datos
+    if (!go) try { const d = await api.details(pick.type, pick.id), m = mine(d), pa = s.el.querySelector('#hxpa'); if (m && pa && pa.isConnected && s.el.querySelector('.hx-pick').getAttribute('href') === pick.href) pa.insertAdjacentHTML('afterbegin', '<a class="btn glass" href="' + platUrl(m.name, pick.title, pick.type, pick.id) + '" target="_blank" rel="noopener">' + ic('play', 16) + 'Abrir en ' + m.short + '</a>'); } catch (e) { /* sin plataforma */ }
   };
   s.el.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-lim]');
@@ -101,8 +106,9 @@ export async function build(U, hue) {
     const week = wk.n ? 'Esta semana: ' + (wk.eps ? wk.eps + (wk.eps === 1 ? ' cap.' : ' caps.') : '') + (wk.eps && wk.movies ? ' + ' : '') + (wk.movies ? wk.movies + (wk.movies === 1 ? ' peli' : ' pelis') : '') + ' · ' + dur(wk.mins) : '';
     const cards = prog.slice(0, 8).map((k) => {
       const m = store.meta(k), f = store.frac(k), days = (Date.now() - (S.last[k] || 0)) / 864e5;
-      return '<a class="hx-c" href="#/' + m.type + '/' + m.id + '?go=next"><div class="im">' + (m.b ? '<img src="' + img(m.b, 'w780') + '" alt="">' : '') + '<span class="pl">' + ic('play', 16) + '</span><div class="pb"><u style="width:' + Math.round(f * 100) + '%"></u></div></div>' +
-        '<b>' + esc(m.t) + '</b><small><span data-hxnx="' + k + '">&nbsp;</span></small><small class="ago' + (days >= 14 ? ' stale' : '') + '">' + (days >= 14 ? 'Hace ' + Math.floor(days) + ' días que no la ves' : S.last[k] ? 'La viste ' + ago(S.last[k]) : '') + '</small></a>';
+      const fh = '#/' + m.type + '/' + m.id + '?go=next';
+      return '<div class="hx-c"><a class="im" href="' + fh + '">' + (m.b ? '<img src="' + img(m.b, 'w780') + '" alt="">' : '') + '<div class="pb"><u style="width:' + Math.round(f * 100) + '%"></u></div></a>' + goBtn('pl', best(m.type, m.id), fh) + '<a class="tt" href="' + fh + '">' +
+        '<b>' + esc(m.t) + '</b><small><span data-hxnx="' + k + '">&nbsp;</span></small><small class="ago' + (days >= 14 ? ' stale' : '') + '">' + (days >= 14 ? 'Hace ' + Math.floor(days) + ' días que no la ves' : S.last[k] ? 'La viste ' + ago(S.last[k]) : '') + '</small></a></div>';
     }).join('');
     parts.push(rowTitle('Seguir viendo', week) + '<div class="hm-row">' + cards + '</div>');
   }
@@ -110,11 +116,11 @@ export async function build(U, hue) {
   /* ---- para vos: una sola fila, con el motivo bajo cada título ---- */
   try {
     const picks = (await taste.suggestions(U, 12)).filter((f) => f.info.p);
-    if (picks.length) parts.push(rowTitle('Para vos') + '<div class="hm-row">' + picks.map((f) => '<a class="hm-p" href="#/' + f.type + '/' + f.id + '"><img src="' + img(f.info.p, 'w342') + '" alt="" loading="lazy"><span>' + esc(f.info.t) + '</span><small class="why">' + esc(f.reason.replace(/^Porque seguís /, 'Por ').replace(/^Es parte de /, 'De ')) + '</small></a>').join('') + '</div>');
+    if (picks.length) parts.push(rowTitle('Para vos') + '<div class="hm-row">' + picks.map((f) => '<div class="hx-pt"><a class="im" href="#/' + f.type + '/' + f.id + '"><img src="' + img(f.info.p, 'w342') + '" alt="" loading="lazy"></a>' + goBtn('go', best(f.type, f.id)) + '<a class="nm" href="#/' + f.type + '/' + f.id + '">' + esc(f.info.t) + '</a><small class="why">' + esc(f.reason.replace(/^Porque seguís /, 'Por ').replace(/^Es parte de /, 'De ')) + '</small></div>').join('') + '</div>');
   } catch (e) { /* sin sugerencias */ }
 
   /* ---- una sola fila con tres pestañas: plataformas · tu lista · tendencias ---- */
-  const my = S.plat || [], region = S.region || 'AR';
+  const my = S.plat || [], region = S.region || 'UY';
   const tab = { plat: [], list: [], trend: [] }, seen = new Set();
   await Promise.all([
     api.trending().then((r) => { (r.results || []).forEach((x) => { const type = x.media_type || (x.title ? 'movie' : 'tv'), k = type + ':' + x.id; if (!x.poster_path || store.frac(k) >= 0.999 || (S.hide || {})[k] || tab.trend.length >= 10) return; tab.trend.push({ type, id: x.id, t: x.title || x.name, p: img(x.poster_path, 'w342') }); }); }).catch(() => {}),
@@ -125,7 +131,7 @@ export async function build(U, hue) {
   const NAMES = { plat: 'Plataformas', list: 'Tu lista', trend: 'Tendencias' };
   const order = ['plat', 'list', 'trend'].filter((k) => tab[k].length || (k === 'plat' && !my.length));
   if (order.length) {
-    const tile = (k, x) => '<div class="hx-pt"><a class="im" href="#/' + x.type + '/' + x.id + '"><img src="' + x.p + '" alt="" loading="lazy"></a>' + (k === 'plat' ? '<a class="go" href="' + platUrl(x.plat.name, x.t, x.type, x.id) + '" target="_blank" rel="noopener" aria-label="Abrir en ' + esc(x.plat.short) + '">' + ic('play', 15) + '</a>' : '') + '<a class="nm" href="#/' + x.type + '/' + x.id + '">' + esc(x.t) + '</a>' + (k === 'plat' ? '<small>' + esc(x.plat.short) + '</small>' : k === 'list' && x.y ? '<small>' + esc(x.y) + '</small>' : '') + '</div>';
+    const tile = (k, x) => '<div class="hx-pt"><a class="im" href="#/' + x.type + '/' + x.id + '"><img src="' + x.p + '" alt="" loading="lazy"></a>' + goBtn('go', k === 'plat' ? { url: platUrl(x.plat.name, x.t, x.type, x.id), short: x.plat.short } : best(x.type, x.id)) + '<a class="nm" href="#/' + x.type + '/' + x.id + '">' + esc(x.t) + '</a>' + (k === 'plat' ? '<small>' + esc(x.plat.short) + '</small>' : k === 'list' && x.y ? '<small>' + esc(x.y) + '</small>' : '') + '</div>';
     parts.push('<div class="hx-shelf"><div class="hx-tabs" role="tablist">' + order.map((k, i) => '<button role="tab" data-tab="' + k + '" class="' + (i ? '' : 'on') + '">' + NAMES[k] + '</button>').join('') + '<button class="hx-act" data-hxp>' + (my.length ? 'Cambiar' : 'Elegir') + '</button></div><div class="hm-row" id="hxsh"></div></div>');
     binds.push((el) => {
       const row = el.querySelector('#hxsh'), act = el.querySelector('[data-hxp]');

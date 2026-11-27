@@ -4,12 +4,12 @@ TMDB no da el enlace directo a cada plataforma y JustWatch no permite consultarl
 así que se arma acá, desde la API pública de JustWatch, y la app lee el archivo. Es lo mismo que hace JustWatch
 cuando tocás el logo de una plataforma: el enlace al título exacto, que en el iPhone abre la app.
 
-Incluye los títulos de data/universes.json y lo más popular de cada plataforma en Argentina.
+Incluye los títulos de data/universes.json y lo más popular de cada plataforma en Uruguay.
 Para actualizarlo:  python3 tools/build-links.py   (no usa ninguna clave).
 Es una API no documentada: si algún día cambia, la app sigue funcionando con las búsquedas."""
 import json, subprocess, time
 
-COUNTRY = 'AR'
+COUNTRY = 'UY'
 PAGES = 7            # páginas de 100 por plataforma
 # código -> (paquete de JustWatch, prefijo del enlace)
 PROV = {

@@ -10,7 +10,7 @@ const canon = (n) => ALIAS[String(n).toLowerCase()] || n;
 export const platName = (n) => (PLATS.find((p) => p[0] === n) || [n, n])[1];
 export const platId = (n) => (PLATS.find((p) => p[0] === n) || [])[2];
 
-const region = () => String(store.state().region || 'AR');
+const region = () => String(store.state().region || 'UY');
 // Verificadas (la página responde): Netflix, Prime Video, Apple TV y Paramount+.
 // Disney+ no tiene una búsqueda que se pueda abrir desde afuera (da 404) y Max redirige y pierde la búsqueda:
 // para esas se usa la página "Dónde ver" de TMDB, que lleva con un toque al título exacto en la plataforma.
@@ -23,12 +23,19 @@ const URLS = {
 // Enlaces directos al título (data/links.json, armado con tools/build-links.py): abren la app en ese título.
 // Formato compacto: { prefix: {código: inicio del enlace}, links: { 'tv:1402': { código: resto del enlace } } }
 const CODE = { n: 'Netflix', d: 'Disney Plus', h: 'Max', p: 'Amazon Prime Video', a: 'Apple TV Plus', c: 'Paramount Plus' };
-let LINKS = null;
+let LINKS = null, READY = null;
 export function initLinks() {
-  return fetch('data/links.json').then((r) => r.json()).then((d) => {
+  return READY || (READY = fetch('data/links.json').then((r) => r.json()).then((d) => {
     LINKS = { region: d.region, by: {} };
     Object.keys(d.links || {}).forEach((k) => { const o = LINKS.by[k] = {}; Object.keys(d.links[k]).forEach((c) => { const v = d.links[k][c]; if (CODE[c]) o[CODE[c]] = v.indexOf('http') === 0 ? v : (d.prefix[c] || '') + v; }); });
-  }).catch(() => { LINKS = null; });
+  }).catch(() => { LINKS = null; }));
+}
+export const linksReady = initLinks;
+// el primer enlace directo al título entre tus plataformas (para abrirlo con un solo toque)
+export function best(type, id) {
+  const by = LINKS && LINKS.region === region().toUpperCase() && LINKS.by[type + ':' + id]; if (!by) return null;
+  const n = (store.state().plat || []).find((x) => by[x]);
+  return n ? { name: n, short: platName(n), url: by[n] } : null;
 }
 const direct = (provider, type, id) => (LINKS && LINKS.region === region().toUpperCase() && LINKS.by[type + ':' + id] && LINKS.by[type + ':' + id][canon(provider)]) || null;
 export const platUrl = (provider, title, type, id) => {
@@ -40,7 +47,7 @@ export const platUrl = (provider, title, type, id) => {
 
 // de las plataformas donde está el título, la primera que tenés vos
 export function mine(d) {
-  const S = store.state(), res = ((d && d['watch/providers'] && d['watch/providers'].results) || {})[S.region || 'AR'] || {};
+  const S = store.state(), res = ((d && d['watch/providers'] && d['watch/providers'].results) || {})[S.region || 'UY'] || {};
   const mineList = S.plat || [], hit = (res.flatrate || []).map((p) => canon(p.provider_name)).find((n) => mineList.indexOf(n) > -1);
   return hit ? { name: hit, short: platName(hit) } : null;
 }
