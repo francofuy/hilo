@@ -14,6 +14,11 @@
 body,.sheet{--a:hsl(var(--h) 92% 66%)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{background:var(--bg);-webkit-text-size-adjust:100%}
+/* se siente como una app: sin zoom con los dedos ni doble toque, y sin seleccionar ni subrayar texto */
+*{touch-action:pan-x pan-y}
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+img{-webkit-user-drag:none}
 html.lock{overflow:hidden}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 var(--f-body);-webkit-font-smoothing:antialiased;min-height:100vh;overscroll-behavior-y:none}
 a{color:inherit;text-decoration:none}

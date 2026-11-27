@@ -3,6 +3,20 @@ import { $ } from './ui.js';
 
 const RM = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
+/* ---------- sin zoom ni selección ----------
+   Safari a veces ignora el viewport: se cortan también los gestos de zoom, el doble toque y la selección de texto.
+   Los campos de texto siguen funcionando para escribir y pegar. */
+export function initLock() {
+  const stop = (e) => e.preventDefault();
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach((n) => document.addEventListener(n, stop, { passive: false }));
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  document.addEventListener('dblclick', stop, { passive: false });
+  window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+  const field = (t) => { const el = t && t.nodeType === 1 ? t : t && t.parentElement; return !!(el && el.closest && el.closest('input,textarea')); };
+  document.addEventListener('contextmenu', (e) => { if (!field(e.target)) e.preventDefault(); });
+  document.addEventListener('selectstart', (e) => { if (!field(e.target)) e.preventDefault(); });
+}
+
 /* ---------- barra de abajo: solo íconos; desaparece al bajar y vuelve al subir ---------- */
 export function initNav() {
   const root = document.documentElement, view = $('#view');

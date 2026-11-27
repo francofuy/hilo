@@ -6,7 +6,7 @@ import * as uni from './universe.js';
 import * as search from './search.js';
 import * as settings from './settings.js';
 import { ic, toast, $, $$ } from './ui.js';
-import { initNav, initBlurUp } from './motion.js';
+import { initNav, initBlurUp, initLock } from './motion.js';
 
 const ROUTES = [
   [/^\/?$/, home, 'home'],
@@ -69,6 +69,7 @@ async function route() {
   if (back && scrolls.has(raw)) { const y = scrolls.get(raw); requestAnimationFrame(() => window.scrollTo(0, y)); setTimeout(() => window.scrollTo(0, y), 250); }
 }
 
+initLock();
 initNav();
 initBlurUp();
 window.addEventListener('hashchange', route);
