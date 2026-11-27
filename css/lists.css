@@ -15,7 +15,9 @@
 .ls-card .ls-fan{margin-bottom:6px}
 .ls-card b{max-width:120px;font-size:13.5px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ls-card small{font-size:11.5px;color:rgba(243,241,236,.55);white-space:nowrap}
-.ls-card:hover .ls-fan i:nth-child(1){--tx:-32px}.ls-card:hover .ls-fan i:nth-child(3){--tx:32px}
+/* al pasar el mouse, el abanico se abre un poco más (solo con mouse; en el teléfono el toque deja el :hover pegado y movía las portadas de golpe) */
+.ls-fan i{transition:translate .35s cubic-bezier(.22,1,.36,1)}
+@media (hover:hover){.ls-card:hover .ls-fan:not(.n0):not(.n1):not(.n2) i:nth-child(1){translate:-6px 0}.ls-card:hover .ls-fan:not(.n0):not(.n1):not(.n2) i:nth-child(3){translate:6px 0}}
 .ls-pb{display:block;width:60px;height:3px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden;margin-top:4px}.ls-pb i{display:block;height:100%;background:var(--a);border-radius:3px}
 .ls-card.new{opacity:.7}
 /* botón de la ficha */
