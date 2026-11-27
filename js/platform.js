@@ -31,6 +31,8 @@ export function initLinks() {
   }).catch(() => { LINKS = null; }));
 }
 export const linksReady = initLinks;
+// marca el enlace para que al volver a Hilo se pregunte si lo viste (js/back.js)
+export const platAttr = (type, id, title) => ' data-plat="' + type + ':' + id + '" data-pt="' + String(title || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) + '"';
 // el primer enlace directo al título entre tus plataformas (para abrirlo con un solo toque)
 export function best(type, id) {
   const by = LINKS && LINKS.region === region().toUpperCase() && LINKS.by[type + ':' + id]; if (!by) return null;

@@ -2,7 +2,7 @@
 import * as store from './store.js';
 import * as api from './api.js';
 import { swipeRows } from './motion.js';
-import { mine as myPlat, platUrl } from './platform.js';
+import { mine as myPlat, platUrl, platAttr } from './platform.js';
 import * as data from './data.js';
 import { nextEpisode } from './progress.js';
 import { openRecap, openSheet } from './sheet.js';
@@ -104,7 +104,7 @@ export async function mount(el, { type, id, query }) {
     const mt = '<div class="mt">' + esc(rate + [isTv ? 'Serie' : 'Película', yrs, isTv ? (d.number_of_seasons ? d.number_of_seasons + (d.number_of_seasons === 1 ? ' temporada' : ' temporadas') : '') : rt].filter(Boolean).join(' · ')) + '</div>';
     const back = '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button>';
     const pri = '<div class="pri-row"><button class="btn pri" id="mainbtn" data-a="main"></button></div>';
-    const mp = myPlat(d), openBtn = mp ? '<a class="ab" href="' + platUrl(mp.name, title, type, id) + '" target="_blank" rel="noopener">' + ic('play', 24) + '<span>Ver en ' + esc(mp.short) + '</span></a>' : '';
+    const mp = myPlat(d), openBtn = mp ? '<a class="ab" href="' + platUrl(mp.name, title, type, id) + '" target="_blank" rel="noopener"' + platAttr(type, id, title) + '>' + ic('play', 24) + '<span>Ver en ' + esc(mp.short) + '</span></a>' : '';
     const acts = '<div class="acts3">' + openBtn + '<button class="ab" id="folbtn" data-a="follow" aria-label="Seguir"></button>' + (isTv ? '<button class="ab" id="recapbtn" data-recap="' + k + '" hidden>' + ic('prev', 24) + '<span>Anteriormente</span></button>' : '') + '<button class="ab" id="offbtn" data-a="off" aria-label="Guardar para ver sin conexión"></button></div>';
     const long = (d.overview || '').length > 150;
     const syn = '<p class="syn' + (long ? ' clamp' : '') + '">' + esc(d.overview || 'Sin sinopsis disponible.') + '</p>' + (long ? '<button class="more" data-a="more">Más</button>' : '');

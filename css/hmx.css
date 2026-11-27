@@ -74,3 +74,15 @@ a.prov{display:block}
 .hx-c .pl{position:absolute;right:9px;top:80px;z-index:2;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#0b0b0e;background:rgba(243,241,236,.95);box-shadow:0 4px 14px rgba(0,0,0,.45)}
 .hx-c .pl.off,.hx-pt .go.off{background:rgba(18,18,26,.5);color:#fff;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
 .hx-pt small.why{color:var(--a);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* aviso al volver de una plataforma */
+.bk{position:fixed;left:12px;right:12px;bottom:calc(var(--sb) + 86px);z-index:45;display:grid;gap:12px;padding:14px 14px 14px;border-radius:24px;background:rgba(18,18,26,.5);-webkit-backdrop-filter:blur(40px) saturate(1.5);backdrop-filter:blur(40px) saturate(1.5);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 20px 50px rgba(0,0,0,.5);opacity:0;transform:translateY(18px);transition:opacity .4s var(--ease),transform .5s var(--ease)}
+.bk.in{opacity:1;transform:none}
+.bk-in{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.bk-in img{width:44px;aspect-ratio:2/3;object-fit:cover;border-radius:7px}
+.bk-in b{display:block;font-size:17px;line-height:1.25}
+.bk-in small{display:block;margin-top:2px;font-size:13px;color:rgba(243,241,236,.65)}
+.bk-a{display:flex;gap:8px}
+.bk-a .btn{flex:1;height:44px;font-size:14.5px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px}
+.bk-a .btn.pri{flex:2}
+html.lock .bk{opacity:0;pointer-events:none}

@@ -8,6 +8,7 @@ import * as settings from './settings.js';
 import { ic, toast, $, $$ } from './ui.js';
 import { initNav, initBlurUp, initLock } from './motion.js';
 import { initLinks } from './platform.js';
+import { initBack } from './back.js';
 
 const ROUTES = [
   [/^\/?$/, home, 'home'],
@@ -71,6 +72,7 @@ async function route() {
 }
 
 initLinks();
+initBack();
 initLock();
 initNav();
 initBlurUp();
