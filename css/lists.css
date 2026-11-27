@@ -70,7 +70,7 @@
 .ls-add{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 16px;border-radius:99px;font-size:13px;font-weight:750;color:var(--a);background:color-mix(in srgb,var(--a) 14%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--a) 40%,transparent)}
 /* campos */
 .ls-in{display:flex;gap:8px;align-items:center;margin:4px 0 8px}
-.ls-in input{flex:1;min-width:0;height:46px;padding:0 18px;border-radius:99px;font-size:15px;color:var(--fg);background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);outline:none}
+.ls-in input{flex:1;min-width:0;height:46px;padding:0 18px;border-radius:99px;font-size:16px;color:var(--fg);background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);outline:none}
 .ls-in input:focus{box-shadow:inset 0 0 0 1.5px var(--a)}
 .ls-ok{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--a);color:#0b0b0e;flex:none;animation:ls-dot .4s cubic-bezier(.34,1.56,.64,1)}
 /* elegir lista */

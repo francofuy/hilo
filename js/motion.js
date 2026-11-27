@@ -17,6 +17,33 @@ export function initLock() {
   document.addEventListener('selectstart', (e) => { if (!field(e.target)) e.preventDefault(); });
 }
 
+/* ---------- teclado: la hoja sube sobre el teclado y la pantalla no se corre ----------
+   En el iPhone el teclado tapa la parte de abajo, y Safari desplaza toda la pantalla para mostrar el campo que escribís.
+   Para que no lo haga, al tocar un campo de una hoja se la sube enseguida (con una altura de teclado estimada), y cuando
+   el teclado ya está se ajusta a su altura real. Así el campo queda a la vista desde el principio y no hay nada que mover. */
+export function initKeyboard() {
+  const vv = window.visualViewport, root = document.documentElement;
+  const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let on = false, est = 0, lift = 0;
+  const isField = (t) => !!(t && t.nodeType === 1 && t.closest && t.closest('input:not([type=checkbox]):not([type=radio]):not([type=button]),textarea,[contenteditable="true"]'));
+  const set = (kb) => { root.style.setProperty('--kb', kb + 'px'); root.classList.toggle('kbd', kb > 0); };
+  const apply = () => {
+    if (!vv) return;
+    root.style.setProperty('--vvh', Math.round(vv.height) + 'px');
+    const real = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    if (on && real > 80) { clearTimeout(lift); est = real; set(real); } else if (!on && real <= 80) set(0);
+  };
+  document.addEventListener('focusin', (e) => {
+    if (!isField(e.target) || !e.target.closest('.sheet')) return;
+    on = true;
+    if (!vv || (window.innerHeight - vv.height > 80)) { apply(); return; }
+    if (ios) { set(est || Math.round(window.innerHeight * 0.4)); clearTimeout(lift); lift = setTimeout(() => { if (on && window.innerHeight - vv.height <= 80) set(0); }, 1500); } // sin teclado en pantalla (teclado físico): se baja
+  });
+  document.addEventListener('focusout', () => setTimeout(() => { if (isField(document.activeElement)) return; on = false; clearTimeout(lift); set(0); }, 90));
+  if (vv) ['resize', 'scroll'].forEach((ev) => vv.addEventListener(ev, apply));
+  apply();
+}
+
 /* ---------- arrastrar con el mouse las filas que se desplazan de costado ----------
    Con el dedo ya se desplazan solas; con el mouse (la app abierta en una computadora) hay que arrastrar a mano. */
 export function initDragScroll() {

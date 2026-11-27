@@ -84,8 +84,8 @@ export function openAddTo(key, title) {
     if (t) { const on = toggle(t.dataset.lk, key); t.classList.toggle('on', on); t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop'); const l = byId(t.dataset.lk); t.querySelector('small').textContent = plural(l.k.length, 'título', 'títulos'); document.querySelectorAll('[data-addlist="' + key + '"]').forEach((b) => b.classList.toggle('on', inAny(key))); toast(on ? 'Agregado a ' + l.n : 'Quitado de ' + l.n); return; }
     if (e.target.closest('[data-nw]')) {
       const box = s.el.querySelector('#lsnw'); box.innerHTML = '<div class="ls-in"><input id="lsnn" type="text" maxlength="40" placeholder="Nombre de la lista" autocomplete="off"><button class="ls-ok" data-mk aria-label="Crear">' + ic('check', 18, 2.4) + '</button></div>';
-      const inp = box.querySelector('input'); inp.focus();
-      const mk = () => { const v = inp.value.trim(); if (!v) { inp.focus(); return; } const l = create(v, [key]); document.querySelectorAll('[data-addlist="' + key + '"]').forEach((b) => b.classList.add('on')); toast('Lista creada: ' + l.n); draw(); const n = s.el.querySelector('[data-lk="' + l.id + '"]'); if (n) n.classList.add('pop'); };
+      const inp = box.querySelector('input'); inp.focus({ preventScroll: true });
+      const mk = () => { const v = inp.value.trim(); if (!v) { inp.focus({ preventScroll: true }); return; } const l = create(v, [key]); document.querySelectorAll('[data-addlist="' + key + '"]').forEach((b) => b.classList.add('on')); toast('Lista creada: ' + l.n); draw(); const n = s.el.querySelector('[data-lk="' + l.id + '"]'); if (n) n.classList.add('pop'); };
       box.querySelector('[data-mk]').onclick = mk; inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') mk(); });
     }
   });
@@ -94,8 +94,8 @@ export function openAddTo(key, title) {
 /* ---------- lista nueva (desde el inicio) ---------- */
 export function openNew(after, keys, name) {
   const s = openSheet('<h3>Nueva lista</h3><div class="ssub">Dale un nombre y después sumale títulos.</div><div class="ls-in"><input id="lsnn" type="text" maxlength="40" placeholder="Ej.: Noche de terror" autocomplete="off" value="' + esc(name || '') + '"><button class="ls-ok" data-mk aria-label="Crear">' + ic('check', 18, 2.4) + '</button></div>', 215);
-  const inp = s.el.querySelector('input'); setTimeout(() => inp.focus(), 350);
-  const mk = () => { const v = inp.value.trim(); if (!v) { inp.focus(); return; } const l = create(v, keys || []); s.close(); if (after) after(); setTimeout(() => openList(l.id, after, !(keys && keys.length)), 380); };
+  const inp = s.el.querySelector('input'); setTimeout(() => inp.focus({ preventScroll: true }), 350);
+  const mk = () => { const v = inp.value.trim(); if (!v) { inp.focus({ preventScroll: true }); return; } const l = create(v, keys || []); s.close(); if (after) after(); setTimeout(() => openList(l.id, after, !(keys && keys.length)), 380); };
   s.el.querySelector('[data-mk]').onclick = mk; inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') mk(); });
 }
 
@@ -145,7 +145,7 @@ export function openList(id, redraw, autoFind) {
   const setEdit = (on) => { edit = on; rows().classList.toggle('edit', on); s.el.querySelector('[data-edit]').classList.toggle('on', on); };
   // nombre: se toca y se escribe
   const nm = s.el.querySelector('#lsname');
-  nm.addEventListener('click', () => { nm.contentEditable = 'true'; nm.focus(); const r = document.createRange(); r.selectNodeContents(nm); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); });
+  nm.addEventListener('click', () => { nm.contentEditable = 'true'; nm.focus({ preventScroll: true }); const r = document.createRange(); r.selectNodeContents(nm); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); });
   nm.addEventListener('blur', () => { nm.contentEditable = 'false'; const v = nm.textContent.trim(); if (v) { rename(l.id, v); l = byId(id); } nm.textContent = l.n; if (redraw) redraw(); });
   nm.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); nm.blur(); } });
   s.el.addEventListener('click', (e) => {
@@ -189,7 +189,7 @@ export function openList(id, redraw, autoFind) {
 /* ---------- buscar y sumar títulos ---------- */
 export function openFind(id, done) {
   const l = byId(id), s = openSheet('<h3>Agregar títulos</h3><div class="ssub">Buscá por nombre o elegí algo que ya seguís.</div><div class="ls-in"><input id="lsq" type="search" placeholder="Buscar películas y series" autocomplete="off"></div><div class="ls-res" id="lsres"></div><button class="btn pri" data-close data-fin style="width:100%;margin-top:12px">Listo</button>', l.h);
-  const box = s.el.querySelector('#lsres'), inp = s.el.querySelector('input'); setTimeout(() => inp.focus(), 350);
+  const box = s.el.querySelector('#lsres'), inp = s.el.querySelector('input'); setTimeout(() => inp.focus({ preventScroll: true }), 350);
   const S = store.state();
   const rowOf = (x, i) => '<div class="ls-fr' + (has(id, x.key) ? ' on' : '') + '" data-key="' + x.key + '" style="--i:' + i + '"><span class="im">' + (x.p ? '<img src="' + img(x.p, 'w185') + '" alt="">' : '') + '</span><span class="tx"><b>' + esc(x.t) + '</b><small>' + esc((x.type === 'tv' ? 'Serie' : 'Película') + (x.y ? ' · ' + x.y : '')) + '</small></span><button class="ls-tg" data-add aria-label="Agregar">' + ic('plus', 16, 2.4) + tick() + '</button></div>';
   const sugg = () => { const ks = [...new Set([...store.inProgress(), ...store.listed(), ...Object.keys(S.watched)])].filter((k) => store.meta(k)).slice(0, 8); box.innerHTML = ks.length ? '<div class="ls-k">Lo que ya seguís</div>' + ks.map((k, i) => { const m = store.meta(k); return rowOf({ key: k, type: m.type, id: m.id, t: m.t, p: m.p, y: m.y }, i); }).join('') : ''; };
