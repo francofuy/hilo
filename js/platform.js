@@ -20,7 +20,17 @@ const URLS = {
   'Apple TV Plus': (q) => 'https://tv.apple.com/' + region().toLowerCase() + '/search?term=' + q,
   'Paramount Plus': (q) => 'https://www.paramountplus.com/search/?q=' + q
 };
+// Enlaces directos al título (data/links.json, armado con tools/build-links.py): abren la app en ese título.
+let LINKS = null;
+export function initLinks() {
+  return fetch('data/links.json').then((r) => r.json()).then((d) => {
+    LINKS = { region: d.region, by: {} };
+    Object.keys(d.links || {}).forEach((k) => { LINKS.by[k] = {}; Object.keys(d.links[k]).forEach((p) => { LINKS.by[k][canon(p)] = d.links[k][p].replace(/[?&]utm_source=universal_search/, ''); }); });
+  }).catch(() => { LINKS = null; });
+}
+const direct = (provider, type, id) => (LINKS && LINKS.region === region().toUpperCase() && LINKS.by[type + ':' + id] && LINKS.by[type + ':' + id][canon(provider)]) || null;
 export const platUrl = (provider, title, type, id) => {
+  const dl = direct(provider, type, id); if (dl) return dl;
   const f = URLS[canon(provider)];
   if (f) return f(encodeURIComponent(title));
   return type && id ? 'https://www.themoviedb.org/' + type + '/' + id + '/watch?locale=' + region().toUpperCase() : null;
