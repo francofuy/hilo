@@ -21,11 +21,13 @@ const URLS = {
   'Paramount Plus': (q) => 'https://www.paramountplus.com/search/?q=' + q
 };
 // Enlaces directos al título (data/links.json, armado con tools/build-links.py): abren la app en ese título.
+// Formato compacto: { prefix: {código: inicio del enlace}, links: { 'tv:1402': { código: resto del enlace } } }
+const CODE = { n: 'Netflix', d: 'Disney Plus', h: 'Max', p: 'Amazon Prime Video', a: 'Apple TV Plus', c: 'Paramount Plus' };
 let LINKS = null;
 export function initLinks() {
   return fetch('data/links.json').then((r) => r.json()).then((d) => {
     LINKS = { region: d.region, by: {} };
-    Object.keys(d.links || {}).forEach((k) => { LINKS.by[k] = {}; Object.keys(d.links[k]).forEach((p) => { LINKS.by[k][canon(p)] = d.links[k][p].replace(/[?&]utm_source=universal_search/, ''); }); });
+    Object.keys(d.links || {}).forEach((k) => { const o = LINKS.by[k] = {}; Object.keys(d.links[k]).forEach((c) => { const v = d.links[k][c]; if (CODE[c]) o[CODE[c]] = v.indexOf('http') === 0 ? v : (d.prefix[c] || '') + v; }); });
   }).catch(() => { LINKS = null; });
 }
 const direct = (provider, type, id) => (LINKS && LINKS.region === region().toUpperCase() && LINKS.by[type + ':' + id] && LINKS.by[type + ':' + id][canon(provider)]) || null;
