@@ -1,5 +1,5 @@
 // Service worker de Hilo: la app abre sin conexión y lo que guardaste sigue disponible.
-const VERSION = 'hilo-v16';
+const VERSION = 'hilo-v17';
 const SHELL = VERSION + '-shell', API = VERSION + '-api', IMGS = VERSION + '-img', FONTS = VERSION + '-fonts';
 const PRECACHE = ['./', 'index.html', 'css/app.css', 'css/theme.css', 'css/design.css', 'css/screens.css', 'css/motion.css', 'css/hmx.css', 'manifest.webmanifest', 'data/universes.json', 'data/orders.json', 'data/links.json', 'data/episodes.json',
   'js/app.js', 'js/api.js', 'js/data.js', 'js/detail.js', 'js/extras.js', 'js/fx.js', 'js/home.js', 'js/progress.js', 'js/search.js', 'js/settings.js', 'js/sheet.js', 'js/store.js', 'js/taste.js', 'js/motion.js', 'js/hmx.js', 'js/back.js', 'js/mon.js', 'js/platform.js', 'js/theme.js', 'js/ui.js', 'js/universe.js',

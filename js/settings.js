@@ -1,11 +1,12 @@
 // Primera configuración (API key) y Ajustes: una lista corta de filas; cada una abre una hoja con el detalle.
 import * as store from './store.js';
 import * as mon from './mon.js';
+import { PLATS, platName } from './platform.js';
 import * as api from './api.js';
 import { openSheet } from './sheet.js';
 import { esc, ic, img, toast, $ } from './ui.js';
 
-export const VERSION = '1.8.0';
+export const VERSION = '1.8.1';
 const REGIONS = [['AR', 'Argentina'], ['MX', 'México'], ['CL', 'Chile'], ['CO', 'Colombia'], ['UY', 'Uruguay'], ['PE', 'Perú'], ['ES', 'España'], ['BR', 'Brasil'], ['US', 'Estados Unidos']];
 const regionName = (c) => (REGIONS.find((r) => r[0] === c) || [c, c])[1];
 
@@ -39,6 +40,11 @@ const SH = {
   key(S, re) {
     return { html: '<h3>API key de TMDB</h3><div class="ssub">Guardada en este teléfono: <b style="color:var(--fg)">••••' + esc(S.key.slice(-4)) + '</b>. Pegá una nueva para cambiarla.</div><div class="field"><input id="nk" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nueva API key"></div><div class="err" id="kerr" role="alert"></div><button class="btn pri" data-act="save" style="width:100%;margin-top:10px">Guardar</button>',
       bind(s) { s.el.addEventListener('click', async (e) => { const b = e.target.closest('[data-act="save"]'); if (!b) return; const v = $('#nk', s.el).value.trim(); if (!v) return; b.disabled = true; b.textContent = 'Comprobando…'; try { await api.validate(v); store.setKey(v); api.clearMemory(); toast('API key actualizada'); s.close(); re(); } catch (er) { $('#kerr', s.el).textContent = er.message; b.disabled = false; b.textContent = 'Guardar'; } }); } };
+  },
+  plat(S, re) {
+    const mine = S.plat || [];
+    return { html: '<h3>Mis plataformas</h3><div class="ssub">Elegí las que tenés. Así Retomar abre el título en la tuya, y si está en más de una te pregunta dónde. Si no elegís ninguna, se ofrecen todas.</div><div class="hx-chips">' + PLATS.map((p) => '<button class="' + (mine.indexOf(p[0]) > -1 ? 'on' : '') + '" data-pl="' + p[0] + '">' + p[1] + '</button>').join('') + '</div><button class="btn pri" style="width:100%;margin-top:14px" data-close>Listo</button>',
+      bind(s) { s.el.addEventListener('click', (e) => { const b = e.target.closest('[data-pl]'); if (b) { const i = mine.indexOf(b.dataset.pl); if (i > -1) mine.splice(i, 1); else mine.push(b.dataset.pl); S.plat = mine; store.save(); b.classList.toggle('on'); } else if (e.target.closest('[data-close]')) re(); }); } };
   },
   mon(S, re) {
     const has = !!S.mkey;
@@ -102,7 +108,7 @@ export async function mount(el) {
     const off = Object.keys(S.off).length, prog = store.inProgress().length, done = store.completed().length, fol = store.listed().length;
     const sum = [prog ? prog + ' en curso' : '', done ? done + ' terminadas' : '', fol ? fol + ' en tu lista' : ''].filter(Boolean).join(' · ') || 'Todavía no seguís nada';
     const groups = [
-      [['region', 'País', regionName(S.region)], ['key', 'API key de TMDB', '••••' + S.key.slice(-4)], ['mon', 'Enlaces por episodio', S.mkey ? 'Activados' : 'Sin configurar']],
+      [['region', 'País', regionName(S.region)], ['key', 'API key de TMDB', '••••' + S.key.slice(-4)], ['plat', 'Mis plataformas', S.plat && S.plat.length ? S.plat.map(platName).join(', ') : 'Todas'], ['mon', 'Enlaces por episodio', S.mkey ? 'Activados' : 'Sin configurar']],
       [['off', 'Sin conexión', off ? off + (off === 1 ? ' guardada' : ' guardadas') : 'Nada guardado'], ['backup', 'Respaldo', '']],
       [...(standalone ? [] : [['install', 'Instalar en tu iPhone', '']]), ['about', 'Acerca de', 'v' + VERSION]],
       [['reset', 'Borrar mi progreso', '', 1]]

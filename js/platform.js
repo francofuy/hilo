@@ -8,6 +8,8 @@ import * as mon from './mon.js';
 export const PLATS = [['Netflix', 'Netflix', 8], ['Disney Plus', 'Disney+', 337], ['Amazon Prime Video', 'Prime Video', 119], ['Max', 'Max', 1899], ['Apple TV Plus', 'Apple TV+', 350], ['Paramount Plus', 'Paramount+', 531]];
 const ALIAS = { 'hbo max': 'Max', 'disney+': 'Disney Plus', 'amazon video': 'Amazon Prime Video', 'apple tv+': 'Apple TV Plus', 'paramount+': 'Paramount Plus' };
 const canon = (n) => ALIAS[String(n).toLowerCase()] || n;
+// tus plataformas; si todavía no elegiste ninguna, se ofrecen todas
+export const myPlats = () => { const p = store.state().plat; return p && p.length ? p : PLATS.map((x) => x[0]); };
 export const platName = (n) => (PLATS.find((p) => p[0] === n) || [n, n])[1];
 export const platId = (n) => (PLATS.find((p) => p[0] === n) || [])[2];
 
@@ -56,7 +58,7 @@ export const platAttr = (type, id, title, opts) => ' data-plat="' + type + ':' +
 // todas las formas de ver un título entre tus plataformas: [{ name, short, url }] (la última que usaste, primero)
 // Sale del catálogo de enlaces directos y, si hay datos de la ficha (d), de las plataformas que informa TMDB.
 export function options(type, id, title, d, ep) {
-  const S = store.state(), mineList = S.plat || [], out = [], seen = new Set(), key = type + ':' + id;
+  const S = store.state(), mineList = myPlats(), out = [], seen = new Set(), key = type + ':' + id;
   const by = LINKS && LINKS.region === region().toUpperCase() && LINKS.by[key];
   if (by) mineList.forEach((n) => { if (by[n]) { seen.add(n); out.push({ name: n, short: platName(n), url: epUrl(key, n, ep) || by[n], ep: !!epUrl(key, n, ep) }); } });
   const res = ((d && d['watch/providers'] && d['watch/providers'].results) || {})[S.region || 'UY'] || {};
@@ -80,6 +82,6 @@ export const platUrl = (provider, title, type, id) => {
 // de las plataformas donde está el título, la primera que tenés vos
 export function mine(d) {
   const S = store.state(), res = ((d && d['watch/providers'] && d['watch/providers'].results) || {})[S.region || 'UY'] || {};
-  const mineList = S.plat || [], hit = (res.flatrate || []).map((p) => canon(p.provider_name)).find((n) => mineList.indexOf(n) > -1);
+  const mineList = myPlats(), hit = (res.flatrate || []).map((p) => canon(p.provider_name)).find((n) => mineList.indexOf(n) > -1);
   return hit ? { name: hit, short: platName(hit) } : null;
 }
