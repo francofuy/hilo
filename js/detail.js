@@ -307,7 +307,7 @@ export async function mount(el, { type, id, query }) {
       openSheet('<div class="rsheet"><h3>Reseña</h3><div class="who"><div class="rav">' + esc((r.a || '?')[0].toUpperCase()) + '</div><div><div class="rn" style="max-width:none">' + esc(r.a) + '</div><div class="rd">' + esc(fmtDate(r.d)) + (r.r != null ? ' · ' + r.r + '/10' : '') + '</div></div></div><div class="body">' + r.tx.split(/\n+/).map((p) => '<p>' + esc(p) + '</p>').join('') + '</div><p class="credit">Reseña de un usuario de TMDB. Puede incluir spoilers.</p><button class="btn pri" style="width:100%;margin-top:10px" data-close>Cerrar</button></div>', hue);
       return;
     }
-    if (act === 'rv') { const li = a.closest('.ep'); if (!li.classList.contains('done') && !li.classList.contains('next')) li.classList.add('rev'); return; }
+    if (act === 'rv') { const li = a.closest('.ep'); if (!li.classList.contains('done') && !li.classList.contains('next')) li.classList.add('spo'); return; }
     const li = a.closest('.ep');
     if (act === 'tog' && li) {
       const s = +li.dataset.s, ep = +li.dataset.e, on = !store.epDone(k, s, ep);

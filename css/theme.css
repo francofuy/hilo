@@ -32,7 +32,7 @@ body,.ov,.sheet{--a:hsl(var(--h) var(--as,92%) var(--al,66%))}
 .ck{position:relative}
 .ep.just .ck::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--a);animation:burst .65s ease-out forwards;pointer-events:none}
 .still img{filter:var(--ef,none) blur(var(--bl,0px)) brightness(var(--br,1))}
-.ep:not(.done):not(.next):not(.rev):not(.future) .still img{filter:var(--ef,none) blur(9px) brightness(.8)}
+.ep:not(.done):not(.next):not(.spo):not(.future) .still img{filter:var(--ef,none) blur(9px) brightness(.8)}
 .era{display:inline-block;margin-right:6px;padding:1px 6px;border-radius:5px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:hsl(var(--h) 80% 60% / .25);color:var(--fg)}
 .era-bw .still img{--ef:grayscale(1) contrast(1.12)}
 
