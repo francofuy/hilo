@@ -4,6 +4,7 @@ import * as store from './store.js';
 import * as api from './api.js';
 import * as data from './data.js';
 import * as taste from './taste.js';
+import * as hmx from './hmx.js';
 import { nextEpisode } from './progress.js';
 import { openRecap } from './sheet.js';
 import { esc, ic, img, epLabel, fmtDate, hueOf, $, $$ } from './ui.js';
@@ -42,12 +43,12 @@ export async function mount(el) {
     if (s.kind === 'resume') {
       return '<div class="hm-sl" data-key="' + s.key + '"><div class="fs-in"><div class="kk">Seguir viendo</div><a href="' + route(s.m) + '?go=next">' + logoOrTitle(s.a, s.m.t) + '</a><div class="mt" data-nx="' + s.key + '">&nbsp;</div>' +
         '<div class="pri-row"><a class="btn pri" href="' + route(s.m) + '?go=next">' + ic('play', 18) + 'Retomar</a></div>' +
-        '<div class="acts3"><button class="ab" data-recap="' + s.key + '">' + ic('prev', 24) + '<span>Anteriormente</span></button></div></div></div>';
+        '<div class="acts3"><button class="ab" data-recap="' + s.key + '">' + ic('prev', 24) + '<span>Anteriormente</span></button><button class="ab" data-hxwhat>' + ic('shuffle', 24) + '<span>¿Qué veo?</span></button></div></div></div>';
     }
     const f = s.f, href = '#/' + f.type + '/' + f.id;
     return '<div class="hm-sl" data-key="' + s.key + '"><div class="fs-in"><div class="kk">' + esc(f.reason) + '</div><a href="' + href + '">' + logoOrTitle(f.a, f.info.t) + '</a><div class="mt">' + esc([typeName(f.type), f.info.y].filter(Boolean).join(' · ')) + '</div>' +
       '<div class="pri-row"><a class="btn pri" href="' + href + '">Ver ficha</a></div>' +
-      '<div class="acts3"><button class="ab" data-add="' + s.key + '">' + ic('mark', 24) + '<span>Mi lista</span></button><button class="ab" data-hide="' + s.key + '"><span class="x">' + ic('plus', 24) + '</span><span>No me interesa</span></button></div></div></div>';
+      '<div class="acts3"><button class="ab" data-add="' + s.key + '">' + ic('mark', 24) + '<span>Mi lista</span></button><button class="ab" data-hide="' + s.key + '"><span class="x">' + ic('plus', 24) + '</span><span>No me interesa</span></button><button class="ab" data-hxwhat>' + ic('shuffle', 24) + '<span>¿Qué veo?</span></button></div></div></div>';
   }).join('');
 
   /* ---------- debajo: universos ---------- */
@@ -58,7 +59,7 @@ export async function mount(el) {
   const brand = '<div class="hm-brand">' + ic('thread', 20, 2) + '<span>Hilo</span>' + (navigator.onLine ? '' : '<em class="off">Sin conexión</em>') + '</div>';
 
   el.innerHTML = '<div class="hm-hero">' + brand + (slidesData.length > 1 ? '<div class="hm-dots">' + slidesData.map((_, i) => '<i class="' + (i ? '' : 'on') + '"></i>').join('') + '</div>' : '') +
-    '<div class="hm-pager" id="pg">' + (slides || '<div class="hm-sl"><div class="fs-in">' + empty + '</div></div>') + '</div></div><div class="pad hm-body">' + uniRow + attr + '</div>';
+    '<div class="hm-pager" id="pg">' + (slides || '<div class="hm-sl"><div class="fs-in">' + empty + '</div></div>') + '</div></div><div class="pad hm-body"><div class="hx-slot" id="hxslot"></div>' + uniRow + attr + '</div>';
 
   /* ---------- fondo de pantalla completa ---------- */
   const fsEl = document.createElement('div'); fsEl.className = 'fs-bg';
@@ -88,6 +89,7 @@ export async function mount(el) {
   el.addEventListener('click', (e) => {
     const rc = e.target.closest('[data-recap]'); if (rc) { e.preventDefault(); openRecap(rc.dataset.recap); return; }
     const add = e.target.closest('[data-add]'), hide = e.target.closest('[data-hide]');
+    if (e.target.closest('[data-hxwhat]')) { hmx.openWhat(U, hue); touch(); return; }
     if (add) {
       const key = add.dataset.add, f = fresh.find((x) => x.key === key); if (!f) return;
       const on = !store.isFollowed(key);
@@ -102,6 +104,9 @@ export async function mount(el) {
       pg.scrollTo({ left: 0, behavior: 'instant' }); upd();
     }
   });
+
+  /* las secciones de abajo llegan sin frenar las portadas */
+  hmx.build(U, hue).then((hx) => { const slot = $('#hxslot', el); if (!slot || !el.isConnected) return; slot.innerHTML = hx.html; hx.bind(el); }).catch(() => {});
 
   /* "T2 · E5 — título" del próximo capítulo */
   $$('[data-nx]', el).forEach(async (n) => {

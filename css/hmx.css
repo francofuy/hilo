@@ -1,0 +1,68 @@
+/* ---------- Inicio: lo que va debajo de las portadas ---------- */
+.hm-body{display:grid;gap:20px}
+.hm-body>*{min-width:0}
+.hm-body>.hm-h{margin-bottom:-11px}
+.hm-h{white-space:nowrap}
+.hm-h small{margin-left:auto;font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.hm-p small{display:block;margin-top:1px;font-size:11.5px;color:rgba(243,241,236,.5)}
+.hm-p small.why{color:var(--a);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hx-none{margin:6px 0;font-size:13.5px;color:rgba(243,241,236,.55)}
+
+/* lo que viene: imágenes con fecha y cuenta regresiva */
+.hx-rail{gap:10px}
+.hx-e{position:relative;display:block;flex:none;width:224px;aspect-ratio:16/10;border-radius:16px;overflow:hidden;background:linear-gradient(135deg,hsl(var(--h) 50% 22%),#101014);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.hx-e .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hx-e::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.86),rgba(0,0,0,.12) 64%,rgba(0,0,0,.28))}
+.hx-e .bd{position:absolute;left:10px;top:10px;z-index:2;padding:5px 11px;border-radius:99px;font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#fff;background:rgba(18,18,26,.42);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.hx-e .bd b{font-size:15px;letter-spacing:0;margin-right:2px}
+.hx-e .tx{position:absolute;left:13px;right:13px;bottom:12px;z-index:2;display:grid;gap:2px}
+.hx-e strong{font-size:15px;font-weight:700;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hx-e small{font-size:12px;color:rgba(243,241,236,.75)}
+.hx-cd{width:292px}
+.hx-cd .bd{color:#0b0b0e;background:var(--a);box-shadow:none}
+.hx-cd .big{display:flex;align-items:baseline;gap:8px;line-height:1}
+.hx-cd .big b{font:900 50px/.9 var(--f-body);letter-spacing:-.03em;color:#fff;text-shadow:0 2px 18px rgba(0,0,0,.6)}
+.hx-cd .big i{font-style:normal;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(243,241,236,.8)}
+.hx-cd strong{font-size:16px}
+.hx-cd .thr{display:block;height:3px;border-radius:2px;background:rgba(255,255,255,.25);overflow:hidden;margin:5px 0 1px}
+.hx-cd .thr u{display:block;height:100%;background:var(--a);border-radius:2px}
+
+/* seguir viendo */
+.hx-c{display:block;width:196px}
+.hx-c .im{position:relative;aspect-ratio:16/10;border-radius:14px;overflow:hidden;background:#1a1a20;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.hx-c .im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hx-c .pl{position:absolute;right:9px;bottom:11px;z-index:2;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:#0b0b0e;background:rgba(243,241,236,.94)}
+.hx-c .pb{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.28);z-index:2}
+.hx-c .pb u{display:block;height:100%;background:var(--a)}
+.hx-c b{display:block;margin-top:8px;font-size:14px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hx-c small{display:block;margin-top:1px;font-size:12px;color:rgba(243,241,236,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hx-c small.ago{color:rgba(243,241,236,.42)}
+.hx-c small.stale{color:var(--a);font-weight:650}
+
+/* una fila, tres pestañas */
+.hx-tabs{display:flex;align-items:baseline;gap:14px;margin-bottom:10px;white-space:nowrap;overflow-x:auto;scrollbar-width:none}
+.hx-tabs::-webkit-scrollbar{display:none}
+.hx-tabs button{font:700 17px/1.2 var(--f-body);letter-spacing:-.01em;color:rgba(243,241,236,.4);transition:color .25s}
+.hx-tabs button.on{color:#fff}
+.hx-tabs .hx-act{margin-left:auto;flex:none;font-size:12.5px;font-weight:650;color:var(--a);letter-spacing:0}
+.hx-tabs .hx-act[hidden]{display:none}
+.hx-pt{position:relative;width:104px}
+.hx-pt .im{display:block}
+.hx-pt img{display:block;width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px;background:#1a1a20;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.hx-pt .go{position:absolute;right:7px;top:calc(104px*1.5 - 41px);width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#0b0b0e;background:rgba(243,241,236,.95);box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.hx-pt .nm{display:-webkit-box;margin-top:7px;font-size:12.5px;font-weight:600;line-height:1.25;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hx-pt small{display:block;margin-top:1px;font-size:11.5px;color:rgba(243,241,236,.5)}
+
+/* hoja de "¿Qué veo ahora?" */
+.hx-t{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+.hx-t button,.hx-chips button{padding:10px 17px;border-radius:99px;font-size:14px;font-weight:650;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.22);color:rgba(243,241,236,.9)}
+.hx-t button.on,.hx-chips button.on{background:#f3f1ec;color:#0b0b0e;box-shadow:none}
+.hx-pick{display:grid;grid-template-columns:84px 1fr;gap:16px;align-items:center;margin:14px 0}
+.hx-pick img{width:84px;aspect-ratio:2/3;object-fit:cover;border-radius:10px}
+.hx-pick b{display:block;font-size:19px;line-height:1.25}
+.hx-pick small{display:block;margin-top:4px;font-size:13.5px;color:rgba(243,241,236,.62)}
+.hx-pa{display:grid;gap:8px}
+.hx-pa .btn{display:flex;align-items:center;justify-content:center;gap:8px}
+.hx-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.hx-slot{display:contents}
+a.prov{display:block}

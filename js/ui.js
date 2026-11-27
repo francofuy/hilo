@@ -24,6 +24,7 @@ const ICON = {
   cloud: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 10a4 4 0 0 1 0 8z"/><path d="M9.5 13.5l2 2 3.5-4"/>',
   cloudoff: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 10a4 4 0 0 1 0 8z"/><path d="M4 4l16 16"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  shuffle: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>',
   mark: '<path d="M6 3h12v18l-6-4-6 4z"/>',
   markok: '<path d="M6 3h12v18l-6-4-6 4z"/><path d="M9.5 9l2 2 3.5-4"/>',
   thread: '<path d="M5 19c0-6 14-4 14-14"/><circle cx="5" cy="19" r="1.6"/><circle cx="19" cy="5" r="1.6"/>',

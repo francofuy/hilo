@@ -52,6 +52,16 @@ export const isFollowed = (k) => !!S.follow[k];
 export const tracked = (k) => !!S.follow[k] || !!S.watched[k];
 export function follow(k, on) { if (on) S.follow[k] = Date.now(); else delete S.follow[k]; save(); }
 export function touch(k) { S.last[k] = Date.now(); }
+/* registro de lo que marcás, para "tu semana" (minutos estimados) */
+function logWatch(k, n, perItem) {
+  if (!n) return; S.log = S.log || [];
+  S.log.push({ t: Date.now(), k, m: Math.round(n * perItem), n }); if (S.log.length > 400) S.log.splice(0, S.log.length - 400);
+}
+export function weekStats() {
+  const from = Date.now() - 7 * 864e5, r = { eps: 0, movies: 0, mins: 0, n: 0 };
+  (S.log || []).forEach((x) => { if (x.t < from) return; r.n++; r.mins += x.m || 0; if (x.k.indexOf('movie:') === 0) r.movies++; else r.eps += x.n || 1; });
+  return r;
+}
 
 export function epDone(k, s, e) { const w = S.watched[k]; return !!(w && typeof w === 'object' && w[s] && w[s].indexOf(e) > -1); }
 export function setEp(k, s, e, on) {
@@ -60,13 +70,14 @@ export function setEp(k, s, e, on) {
   const a = w[s] || (w[s] = []), i = a.indexOf(e);
   if (on && i < 0) { a.push(e); a.sort((x, y) => x - y); }
   if (!on && i > -1) a.splice(i, 1);
-  tidy(k); if (on) { touch(k); if (!S.follow[k]) S.follow[k] = Date.now(); } save();
+  tidy(k); if (on) { if (i < 0) logWatch(k, 1, 45); touch(k); if (!S.follow[k]) S.follow[k] = Date.now(); } save();
 }
 export function setRange(k, s, eps, on) {
   let w = S.watched[k];
   if (!w || typeof w !== 'object') w = S.watched[k] = {};
-  const set = new Set(w[s] || []);
+  const set = new Set(w[s] || []), before = set.size;
   eps.forEach((e) => (on ? set.add(e) : set.delete(e)));
+  if (on) logWatch(k, set.size - before, 45);
   w[s] = [...set].sort((x, y) => x - y);
   tidy(k); if (on) { touch(k); if (!S.follow[k]) S.follow[k] = Date.now(); } save();
 }
@@ -82,7 +93,7 @@ export function countWatched(k) {
   return Object.keys(w).reduce((a, s) => a + (+s > 0 ? w[s].length : 0), 0);
 }
 export function isMovieWatched(k) { return !!S.watched[k]; }
-export function setMovie(k, on) { if (on) { S.watched[k] = Date.now(); touch(k); if (!S.follow[k]) S.follow[k] = Date.now(); } else delete S.watched[k]; save(); }
+export function setMovie(k, on) { if (on) { if (!S.watched[k]) logWatch(k, 1, (S.meta[k] && S.meta[k].rt) || 125); S.watched[k] = Date.now(); touch(k); if (!S.follow[k]) S.follow[k] = Date.now(); } else delete S.watched[k]; save(); }
 
 export function frac(k, fallbackTot) {
   const { type } = parse(k);
@@ -160,6 +171,8 @@ export function importJSON(txt) {
   if (!d || typeof d !== 'object' || !d.watched) throw new Error('Archivo inválido');
   ['follow', 'watched', 'last', 'rate', 'off', 'meta', 'unis', 'uorder'].forEach((f) => { S[f] = { ...S[f], ...(d[f] || {}) }; });
   if (d.region) S.region = d.region;
+  if (Array.isArray(d.log)) S.log = (S.log || []).concat(d.log).slice(-400);
+  if (Array.isArray(d.plat)) S.plat = d.plat;
   save();
 }
 export function resetProgress() { S.follow = {}; S.watched = {}; S.last = {}; S.rate = {}; S.off = {}; S.meta = {}; save(); }
