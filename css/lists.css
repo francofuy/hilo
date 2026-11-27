@@ -105,3 +105,13 @@
 
 .listbtn.on{background:var(--glass)!important;color:var(--fg)!important}
 .ls-pl{width:36px;height:36px;margin:0 6px;border-radius:50%;display:grid;place-items:center;color:var(--a);background:color-mix(in srgb,var(--a) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--a) 45%,transparent)}
+
+/* universo → lista: elegir dónde */
+.ls-dest{display:flex;gap:8px;margin:2px -20px 6px;padding:2px 20px 6px;overflow-x:auto;scrollbar-width:none}
+.ls-ch{display:inline-flex;align-items:center;gap:7px;flex:none;height:36px;padding:0 15px;border-radius:99px;font-size:13px;font-weight:700;color:var(--fg);background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);transition:background .3s,color .3s,box-shadow .3s}
+.ls-ch i{width:9px;height:9px;border-radius:50%;background:hsl(var(--h) 85% 62%)}
+.ls-ch.on{background:var(--a);color:#0b0b0e;box-shadow:none;text-shadow:none}
+.ls-ch.on i{background:#0b0b0e}
+.ls-in[hidden]{display:none}
+.ls-seg button.off{opacity:.4}
+.ls-k{margin:10px 0 4px}

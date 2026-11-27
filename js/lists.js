@@ -101,17 +101,34 @@ export function openNew(after, keys, name) {
 
 /* ---------- desde un universo: una lista con lo que falta ---------- */
 export function openFromUniverse(Un) {
-  const S = store.state(), items = Un.items;
+  const S = store.state(), items = Un.items, hue0 = Un.hue != null ? Un.hue : 215;
   const pend = items.filter((i) => (!i.d || i.d <= store.today()) && store.frac(i.key, i.eps) < 0.999), core = pend.filter((i) => !i.o);
   const opts = [['Lo que te falta', pend], ['Sin lo opcional', core], ['Todo el universo', items.filter((i) => !i.d || i.d <= store.today())]].filter((o, i, a) => o[1].length && (i === 0 || o[1].length !== a[i - 1][1].length));
-  let pick = 0;
-  const s = openSheet('<h3>Maratón de ' + esc(Un.title) + '</h3><div class="ssub">Se arma con los títulos en el orden que tengas elegido.</div><div class="ls-in"><input id="lsnn" type="text" maxlength="40" value="Maratón de ' + esc(Un.title) + '" autocomplete="off"></div>' +
-    '<div class="ls-seg" id="lsseg">' + opts.map((o, i) => '<button class="' + (i ? '' : 'on') + '" data-o="' + i + '"><b>' + esc(o[0]) + '</b><small>' + plural(o[1].length, 'título', 'títulos') + '</small></button>').join('') + '</div><button class="btn pri" data-mk style="width:100%;margin-top:14px">Crear lista</button>', Un.hue != null ? Un.hue : 215);
-  s.el.addEventListener('click', (e) => {
-    const o = e.target.closest('[data-o]'); if (o) { pick = +o.dataset.o; s.el.querySelectorAll('[data-o]').forEach((x) => x.classList.toggle('on', x === o)); return; }
+  let pick = 0, dest = 'new'; // dest: 'new' o el id de una lista que ya tenés
+  const mine = all();
+  // lo que se sumaría: los del universo que la lista elegida todavía no tiene
+  const fresh = (o) => (dest === 'new' ? o[1] : o[1].filter((i) => !has(dest, i.key)));
+  const s_ = openSheet('<h3>Maratón de ' + esc(Un.title) + '</h3><div class="ssub" id="lsub">Se arma con los títulos en el orden que tengas elegido.</div>' +
+    (mine.length ? '<div class="ls-k">Dónde</div><div class="ls-dest" id="lsdest"><button class="ls-ch on" data-d="new">' + ic('plus', 14, 2.4) + 'Lista nueva</button>' + mine.map((l) => '<button class="ls-ch" data-d="' + l.id + '" style="--h:' + l.h + '"><i></i>' + esc(l.n) + '</button>').join('') + '</div>' : '') +
+    '<div class="ls-in" id="lsnamebox"><input id="lsnn" type="text" maxlength="40" value="Maratón de ' + esc(Un.title) + '" autocomplete="off"></div>' +
+    '<div class="ls-k">Qué sumar</div><div class="ls-seg" id="lsseg">' + opts.map((o, i) => '<button class="' + (i ? '' : 'on') + '" data-o="' + i + '"><b>' + esc(o[0]) + '</b><small></small></button>').join('') + '</div><button class="btn pri" data-mk style="width:100%;margin-top:14px">Crear lista</button>', hue0);
+  const refresh = () => {
+    const seg = s_.el.querySelectorAll('[data-o]');
+    seg.forEach((b, i) => { const n = fresh(opts[i]).length, dup = opts[i][1].length - n; b.querySelector('small').textContent = dest === 'new' ? plural(n, 'título', 'títulos') : n ? plural(n, 'título nuevo', 'títulos nuevos') + (dup ? ' · ' + dup + ' ya están' : '') : 'ya están todos'; b.classList.toggle('off', !n); });
+    if (!fresh(opts[pick]).length) { const j = opts.findIndex((o) => fresh(o).length); if (j > -1) pick = j; }
+    seg.forEach((b, i) => b.classList.toggle('on', i === pick));
+    const mk = s_.el.querySelector('[data-mk]'), l = dest === 'new' ? null : byId(dest);
+    s_.el.querySelector('#lsnamebox').hidden = !!l; mk.textContent = l ? 'Agregar a ' + l.n : 'Crear lista'; mk.disabled = !fresh(opts[pick]).length;
+    s_.el.style.setProperty('--h', l ? l.h : hue0);
+  };
+  refresh();
+  s_.el.addEventListener('click', (e) => {
+    const d = e.target.closest('[data-d]'); if (d) { dest = d.dataset.d; s_.el.querySelectorAll('[data-d]').forEach((x) => x.classList.toggle('on', x === d)); refresh(); return; }
+    const o = e.target.closest('[data-o]'); if (o && !o.classList.contains('off')) { pick = +o.dataset.o; refresh(); return; }
     if (!e.target.closest('[data-mk]')) return;
-    const ord = data.sequence(Un, data.prefOrder(Un, (S.uorder || {})[Un.id])), set = new Set(opts[pick][1].map((i) => i.key)), keys = ord.filter((i) => set.has(i.key)).map((i) => { store.rememberItem(i); return i.key; });
-    const l = create(s.el.querySelector('input').value, keys); s.close(); toast('Lista creada: ' + l.n); setTimeout(() => openList(l.id), 380);
+    const ord = data.sequence(Un, data.prefOrder(Un, (S.uorder || {})[Un.id])), set = new Set(fresh(opts[pick]).map((i) => i.key)), keys = ord.filter((i) => set.has(i.key)).map((i) => { store.rememberItem(i); return i.key; });
+    if (dest === 'new') { const l = create(s_.el.querySelector('#lsnn').value, keys); s_.close(); toast('Lista creada: ' + l.n); setTimeout(() => openList(l.id), 380); return; }
+    const l = byId(dest); if (!l) return; l.k.push(...keys); store.save(); s_.close(); toast('Agregué ' + plural(keys.length, 'título', 'títulos') + ' a ' + l.n); setTimeout(() => openList(l.id), 380);
   });
 }
 
