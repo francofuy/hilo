@@ -10,6 +10,7 @@ import { stats } from './data.js';
 import { PLATS, platName, platId, platUrl, mine, best, platAttr } from './platform.js';
 import { ensure } from './mon.js';
 import * as fun from './fun.js';
+import * as lists from './lists.js';
 import { esc, ic, img, ago, daysUntil, epLabel } from './ui.js';
 
 const RT = { movie: 125, ep: 45 }; // estimaciones cuando TMDB no da la duración
@@ -135,15 +136,16 @@ export async function build(U, hue) {
   ]);
   tab.plat.sort((a, b) => b.pop - a.pop); tab.plat = tab.plat.slice(0, 14);
   store.listed().slice(0, 12).forEach((k) => { const m = store.meta(k); if (m && m.p) tab.list.push({ type: m.type, id: m.id, t: m.t, p: img(m.p, 'w342'), y: m.y }); });
-  const NAMES = { plat: 'Plataformas', list: 'Tu lista', trend: 'Tendencias' };
-  const order = ['plat', 'list', 'trend'].filter((k) => tab[k].length || (k === 'plat' && !my.length));
+  const NAMES = { plat: 'Plataformas', list: 'Tu lista', lists: 'Maratones', trend: 'Tendencias' };
+  const order = ['plat', 'list', 'lists', 'trend'].filter((k) => k === 'lists' || tab[k].length || (k === 'plat' && !my.length));
   if (order.length) {
     const tile = (k, x) => '<div class="hx-pt"><a class="im" href="#/' + x.type + '/' + x.id + '"><img src="' + x.p + '" alt="" loading="lazy"></a>' + goBtn('go', k === 'plat' ? { url: platUrl(x.plat.name, x.t, x.type, x.id), short: x.plat.short } : best(x.type, x.id), null, x.type, x.id, x.t) + '<a class="nm" href="#/' + x.type + '/' + x.id + '">' + esc(x.t) + '</a>' + (k === 'plat' ? '<small>' + esc(x.plat.short) + '</small>' : k === 'list' && x.y ? '<small>' + esc(x.y) + '</small>' : '') + '</div>';
     parts.push('<div class="hx-shelf"><div class="hx-tabs" role="tablist">' + order.map((k, i) => '<button role="tab" data-tab="' + k + '" class="' + (i ? '' : 'on') + '">' + NAMES[k] + '</button>').join('') + '<button class="hx-act" data-hxp>' + (my.length ? 'Cambiar' : 'Elegir') + '</button></div><div class="hm-row" id="hxsh"></div></div>');
     binds.push((el) => {
       const row = el.querySelector('#hxsh'), act = el.querySelector('[data-hxp]');
-      const draw = (k) => { row.innerHTML = tab[k].length ? tab[k].map((x) => tile(k, x)).join('') : '<p class="hx-none">' + (k === 'plat' ? (my.length ? 'Nada nuevo en tus plataformas por ahora.' : 'Elegí tus plataformas para ver lo que ya tenés.') : 'Nada por ahora.') + '</p>'; act.hidden = k !== 'plat'; };
+      const draw = (k) => { if (k === 'lists') { row.innerHTML = lists.shelfHTML(); act.hidden = true; return; } row.innerHTML = tab[k].length ? tab[k].map((x) => tile(k, x)).join('') : '<p class="hx-none">' + (k === 'plat' ? (my.length ? 'Nada nuevo en tus plataformas por ahora.' : 'Elegí tus plataformas para ver lo que ya tenés.') : 'Nada por ahora.') + '</p>'; act.hidden = k !== 'plat'; };
       draw(order[0]);
+      lists.bindShelf(row, () => { const on = el.querySelector('.hx-tabs .on'); if (on && on.dataset.tab === 'lists') draw('lists'); });
       el.querySelector('.hx-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; el.querySelectorAll('[data-tab]').forEach((x) => x.classList.toggle('on', x === b)); draw(b.dataset.tab); });
       act.addEventListener('click', () => {
         const s = openSheet('<h3>Tus plataformas</h3><div class="ssub">Para mostrarte lo que ya podés ver y abrirlo directo. Se aplica la próxima vez que abras el inicio.</div><div class="hx-chips">' + PLATS.map((p) => '<button class="' + (my.indexOf(p[0]) > -1 ? 'on' : '') + '" data-pl="' + p[0] + '">' + p[1] + '</button>').join('') + '</div><button class="btn pri" style="width:100%;margin-top:14px" data-close>Listo</button>', hue);

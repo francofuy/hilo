@@ -11,6 +11,7 @@ import { initLinks } from './platform.js';
 import { initMon } from './mon.js';
 import { initBack } from './back.js';
 import { initFun } from './fun.js';
+import { initLists } from './lists.js';
 
 const ROUTES = [
   [/^\/?$/, home, 'home'],
@@ -77,6 +78,7 @@ initLinks();
 initMon();
 initBack();
 initFun();
+initLists();
 initLock();
 initDragScroll();
 initNav();

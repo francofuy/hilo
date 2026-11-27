@@ -3,6 +3,7 @@ import * as store from './store.js';
 import * as api from './api.js';
 import * as data from './data.js';
 import { openSheet } from './sheet.js';
+import * as lists from './lists.js';
 import { esc, ic, img, fmtDate, daysUntil, hueOf, toast, $, $$ } from './ui.js';
 
 export const tab = 'universes';
@@ -113,8 +114,8 @@ async function render(el, U) {
     lit = {}; idx = new Map(); firstI = shown[0] || null; lastI = shown[shown.length - 1] || null;
     shown.forEach((x, n) => { idx.set(x.key, n); const nx = shown[n + 1]; if (nx && frac(x) >= 0.999 && (frac(nx) >= 0.999 || nx === here)) { lit[x.key + 'd'] = 1; lit[nx.key + 'u'] = 1; } });
     const hi = here ? shown.indexOf(here) : -1;
-    const sv = store.uniSaved(U.id), saveBtn = '<button class="ab sv' + (sv ? ' on' : '') + '" data-a="save">' + ic('mark', 24) + '<span>' + (sv ? 'Guardado' : 'Guardar') + '</span></button>';
-    topEl.innerHTML = '<div class="un-hero">' + back + '<div class="fs-in"><div class="kk">' + (U.id[0] === 'c' && /^c\d+$/.test(U.id) ? 'Colección' : 'Universo') + '</div><h1 class="un-title">' + esc(U.title) + '</h1><div class="mt">' + esc(mt) + '</div>' + cont + '<div class="acts3">' + modeBtn + pendBtn + saveBtn + '</div></div></div>';
+    const sv = store.uniSaved(U.id), listBtn = '<button class="ab" data-a="tolist">' + ic('lists', 24) + '<span>A una lista</span></button>', saveBtn = '<button class="ab sv' + (sv ? ' on' : '') + '" data-a="save">' + ic('mark', 24) + '<span>' + (sv ? 'Guardado' : 'Guardar') + '</span></button>';
+    topEl.innerHTML = '<div class="un-hero">' + back + '<div class="fs-in"><div class="kk">' + (U.id[0] === 'c' && /^c\d+$/.test(U.id) ? 'Colección' : 'Universo') + '</div><h1 class="un-title">' + esc(U.title) + '</h1><div class="mt">' + esc(mt) + '</div>' + cont + '<div class="acts3">' + modeBtn + pendBtn + saveBtn + listBtn + '</div></div></div>';
     const before = hi > 0 ? shown.slice(0, hi) : [], after = hi >= 0 ? shown.slice(hi) : shown;
     bodyEl.innerHTML = '<div class="pad un-list"><button class="un-why" data-a="mode"><span>' + (curOpt.rec ? '<b>Orden recomendado.</b> ' : '<b>' + curOpt.label + '.</b> ') + esc(firstSentence(curOpt.why)) + '</span>' + ic('chev', 16) + '</button>' +
       (before.length ? '<button class="un-prev" data-a="prev"><span>' + (openPrev ? 'Ocultar' : 'Ver') + ' los ' + before.length + ' anteriores</span>' + ic('chev', 16) + '</button>' + (openPrev ? rows(before, null) : '') : '') + rows(after, here) + '</div>';
@@ -133,6 +134,7 @@ async function render(el, U) {
     if (act === 'mode') return openOrders(U, mode, (id) => { mode = id; S.uorder[U.id] = id; store.save(); draw(); });
     if (act === 'pend') { pend = !pend; return draw(); }
     if (act === 'save') { toggleUni(U.id, U.items); return draw(); }
+    if (act === 'tolist') { lists.openFromUniverse(U); return; }
     if (act === 'prev') { openPrev = !openPrev; return draw(); }
     const i = U.items.find((x) => x.key === a.dataset.key);
     if (act === 'cont') { const h = hereOf(ord); if (h) location.hash = '#/' + h.k + '/' + h.id + '?go=next'; return; }

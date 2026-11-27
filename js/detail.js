@@ -1,5 +1,6 @@
 // Ficha de serie o película.
 import * as store from './store.js';
+import * as lists from './lists.js';
 import * as api from './api.js';
 import { swipeRows } from './motion.js';
 import { options, platUrl, platAttr, learn } from './platform.js';
@@ -105,7 +106,7 @@ export async function mount(el, { type, id, query }) {
     const rate = d.vote_count >= 30 && d.vote_average ? d.vote_average.toFixed(1) + ' · ' : '';
     const yrs = isTv && d.last_air_date && d.last_air_date.slice(0, 4) !== n.year && d.status !== 'Returning Series' ? n.year + '–' + d.last_air_date.slice(0, 4) : n.year;
     const mt = '<div class="mt">' + esc(rate + [isTv ? 'Serie' : 'Película', yrs, isTv ? (d.number_of_seasons ? d.number_of_seasons + (d.number_of_seasons === 1 ? ' temporada' : ' temporadas') : '') : rt].filter(Boolean).join(' · ')) + '</div>';
-    const back = '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button><button class="gbtn sharebtn" data-share="' + k + '" data-st="' + esc(title) + '" aria-label="Compartir">' + ic('share', 20) + '</button>';
+    const back = '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button><button class="gbtn sharebtn" data-share="' + k + '" data-st="' + esc(title) + '" aria-label="Compartir">' + ic('share', 20) + '</button><button class="gbtn listbtn' + (lists.inAny(k) ? ' on' : '') + '" data-addlist="' + k + '" data-lt="' + esc(title) + '" aria-label="Agregar a una lista">' + ic('lists', 20) + '</button>';
     const pri = '<div class="pri-row"><button class="btn pri" id="mainbtn" data-a="main"></button></div>';
     // en las series, el botón de Retomar abre la plataforma (o pregunta dónde); en las películas, esta acción
     const openBtn = !isTv && popts.length ? '<a class="ab" href="' + popts[0].url + '" target="_blank" rel="noopener"' + platAttr(type, id, title, popts) + '>' + ic('play', 24) + '<span>Ver' + (popts.length > 1 ? '' : ' en ' + esc(popts[0].short)) + '</span></a>' : '';

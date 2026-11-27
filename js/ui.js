@@ -34,7 +34,11 @@ const ICON = {
   flame: '<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/>',
   share: '<path d="M12 15V4M8 8l4-4 4 4M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',
   cal: '<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4M12 13v4M10 15h4"/>',
-  spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'
+  spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
+  grip: '<path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" stroke-width="3"/>',
+  dots: '<path d="M6 12h.01M12 12h.01M18 12h.01" stroke-width="3"/>',
+  minus: '<path d="M5 12h14"/>',
+  lists: '<path d="M4 7h11M4 12h7M4 17h7M17 13v6M14 16h6"/>'
 };
 export const ic = (n, s, sw) => '<svg class="ic" width="' + (s || 22) + '" height="' + (s || 22) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (sw || 1.8) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[n] + '</svg>';
 
@@ -100,9 +104,11 @@ export const epLabel = (s, e) => 'T' + s + ' · E' + e;
 
 /* ---------- aviso flotante ---------- */
 let tt;
-export function toast(msg) {
+export function toast(msg, undo) {
   const t = $('#toast'); if (!t) return;
-  t.textContent = msg; t.classList.add('in'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('in'), 2400);
+  t.textContent = msg; t.classList.toggle('act', !!undo);
+  if (undo) { const b = document.createElement('button'); b.textContent = 'Deshacer'; b.onclick = () => { t.classList.remove('in'); undo(); }; t.appendChild(b); }
+  t.classList.add('in'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('in'), undo ? 4200 : 2400);
 }
 
 /* ---------- parallax del héroe ---------- */
