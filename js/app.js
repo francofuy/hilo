@@ -6,6 +6,7 @@ import * as uni from './universe.js';
 import * as search from './search.js';
 import * as settings from './settings.js';
 import { ic, toast, $, $$ } from './ui.js';
+import { initNav, initBlurUp } from './motion.js';
 
 const ROUTES = [
   [/^\/?$/, home, 'home'],
@@ -24,7 +25,7 @@ document.documentElement.dataset.fx = store.state().fx || 'full';
 const scrolls = new Map();
 
 $('#pill').innerHTML = '<span class="ind" id="ind"></span>' + [['home', '#/', 'Inicio', 'home'], ['universes', '#/universes', 'Universos', 'uni'], ['search', '#/search', 'Buscar', 'search'], ['settings', '#/settings', 'Ajustes', 'gear']]
-  .map((t) => '<a href="' + t[1] + '" data-t="' + t[0] + '">' + ic(t[3], 22) + t[2] + '</a>').join('');
+  .map((t) => '<a href="' + t[1] + '" data-t="' + t[0] + '">' + ic(t[3], 22) + '<span>' + t[2] + '</span></a>').join('');
 
 function setTab(t) {
   const i = TABS.indexOf(t);
@@ -68,6 +69,8 @@ async function route() {
   if (back && scrolls.has(raw)) { const y = scrolls.get(raw); requestAnimationFrame(() => window.scrollTo(0, y)); setTimeout(() => window.scrollTo(0, y), 250); }
 }
 
+initNav();
+initBlurUp();
 window.addEventListener('hashchange', route);
 window.addEventListener('offline', () => toast('Sin conexión: mostrando lo que está guardado'));
 window.addEventListener('online', () => toast('Conexión recuperada'));

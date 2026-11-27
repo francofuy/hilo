@@ -1,6 +1,7 @@
 // Ficha de serie o película.
 import * as store from './store.js';
 import * as api from './api.js';
+import { swipeRows } from './motion.js';
 import * as data from './data.js';
 import { nextEpisode } from './progress.js';
 import { openRecap, openSheet } from './sheet.js';
@@ -140,7 +141,8 @@ export async function mount(el, { type, id, query }) {
           const from = Math.max(0, i - 2), to = Math.min(ord.length, i + 5);
           o += '<div class="sub">' + data.ORDER_LABEL[pref] + (pref === data.metaOf(u).rec ? ' · recomendado' : '') + '</div><div class="un-strip" id="strip">' + ord.slice(from, to).map((x, n) => {
             const j = from + n, here = j === i, cap = here ? 'Esta ficha' : j === i - 1 ? 'Antes' : j === i + 1 ? 'Después' : (data.roleOf(u, x.key) ? data.roleOf(u, x.key).label : String(x.y || ''));
-            return '<a class="un-pc' + (here ? ' here' : '') + (store.isDone(x.key, x.eps) ? ' done' : '') + '" href="#/' + x.k + '/' + x.id + '"><span class="im">' + (x.p ? '<img src="' + img(x.p, 'w185') + '" alt="">' : '') + (store.isDone(x.key, x.eps) ? '<u>' + ic('check', 14, 3) + '</u>' : '') + '</span><b>' + esc(x.t) + '</b><small>' + esc(cap) + '</small></a>';
+            const nx = ord[j + 1], litc = nx && j < to - 1 && store.isDone(x.key, x.eps) && (store.isDone(nx.key, nx.eps) || j + 1 === i);
+            return '<a class="un-pc' + (here ? ' here' : '') + (store.isDone(x.key, x.eps) ? ' done' : '') + (litc ? ' lit' : '') + '" style="--i:' + n + '" href="#/' + x.k + '/' + x.id + '"><i class="nd"></i><span class="im">' + (x.p ? '<img src="' + img(x.p, 'w185') + '" alt="">' : '') + (store.isDone(x.key, x.eps) ? '<u>' + ic('check', 14, 3) + '</u>' : '') + '</span><b>' + esc(x.t) + '</b><small>' + esc(cap) + '</small></a>';
           }).join('') + '</div>';
         }
       }
@@ -311,6 +313,19 @@ export async function mount(el, { type, id, query }) {
       const s = +a.dataset.s, eps = (seasonData[s] || []).filter((x) => x.air_date && x.air_date <= t0).map((x) => x.episode_number);
       if (!eps.length) return;
       const allDone = eps.every((x) => store.epDone(k, s, x)); store.setRange(k, s, eps, !allDone); await refresh(); toast(allDone ? 'Temporada desmarcada' : 'Temporada ' + s + ' marcada'); return;
+    }
+  });
+
+  /* deslizar un episodio: derecha marca, izquierda quita */
+  if (isTv) swipeRows(el, {
+    sel: '.ep',
+    canMark: (li) => !li.classList.contains('done') && !li.classList.contains('future'),
+    canUnmark: (li) => li.classList.contains('done'),
+    on: (li, dir) => {
+      const s = +li.dataset.s, ep = +li.dataset.e;
+      store.setEp(k, s, ep, dir === 'mark');
+      if (dir === 'mark') { li.classList.add('just'); setTimeout(() => li.classList.remove('just'), 700); }
+      refresh();
     }
   });
 

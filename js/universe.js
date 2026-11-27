@@ -91,11 +91,13 @@ async function render(el, U) {
   const topEl = $('#top', el), bodyEl = $('#body', el);
   const back = '<button class="gbtn backbtn" data-a="back" aria-label="Volver">' + ic('back', 22, 2) + '</button>';
 
+  // el hilo: qué tramos están encendidos (un título visto y el siguiente visto o actual)
+  let lit = {}, idx = new Map(), firstI = null, lastI = null;
   const row = (i, here) => {
     const f = frac(i), lk = locked(i), role = data.roleOf(U, i.key);
-    return '<div class="un-row' + (f >= 0.999 ? ' done' : '') + (here ? ' here' : '') + '" data-key="' + i.key + '"><button class="un-it" data-a="item" data-key="' + i.key + '">' + (i.p ? '<img src="' + img(i.p, 'w185') + '" alt="" loading="lazy">' : '<span class="np"></span>') +
-      '<div><b>' + esc(i.t) + '</b><small>' + esc(meta(i, role)) + (i.k === 'tv' && f > 0 && f < 0.999 ? ' · ' + store.countWatched(i.key) + ' / ' + (((store.meta(i.key) || {}).tot) || i.eps || '?') : '') + '</small>' + (here ? '<em>Estoy aquí</em>' : '') + '</div></button>' +
-      (lk ? '<span class="un-ck lk">' + ic('lock', 16, 2) + '</span>' : '<button class="un-ck" data-a="ck" data-key="' + i.key + '" aria-label="' + (f >= 0.999 ? 'Marcar como no visto' : 'Marcar como visto') + '">' + (f >= 0.999 ? checkSvg : '') + '</button>') + '</div>';
+    const node = lk ? '<span class="un-ck lk">' + ic('lock', 16, 2) + '</span>' : '<button class="un-ck" data-a="ck" data-key="' + i.key + '" aria-label="' + (f >= 0.999 ? 'Marcar como no visto' : 'Marcar como visto') + '">' + (f >= 0.999 ? checkSvg : '') + '</button>';
+    return '<div class="un-row' + (f >= 0.999 ? ' done' : '') + (here ? ' here' : '') + (lit[i.key + 'u'] ? ' tu' : '') + (lit[i.key + 'd'] ? ' td' : '') + (i === firstI ? ' t0' : '') + (i === lastI ? ' t1' : '') + '" style="--i:' + Math.min(idx.get(i.key) || 0, 14) + '" data-key="' + i.key + '">' + node + '<button class="un-it" data-a="item" data-key="' + i.key + '">' + (i.p ? '<img src="' + img(i.p, 'w185') + '" alt="" loading="lazy">' : '<span class="np"></span>') +
+      '<div><b>' + esc(i.t) + '</b><small>' + esc(meta(i, role)) + (i.k === 'tv' && f > 0 && f < 0.999 ? ' · ' + store.countWatched(i.key) + ' / ' + (((store.meta(i.key) || {}).tot) || i.eps || '?') : '') + '</small>' + (here ? '<em>Estoy aquí</em>' : '') + '</div></button></div>';
   };
 
   // en "Por tipo de historia" cada grupo lleva su título
@@ -108,6 +110,8 @@ async function render(el, U) {
     const mo = data.metaOf(U), curOpt = mo.opts.find((o) => o.id === mode) || mo.opts[0];
     const pendBtn = '<button class="ab' + (pend ? ' on' : '') + '" data-a="pend">' + ic('check', 24) + '<span>' + (pend ? 'Solo pendientes' : 'Todos') + '</span></button>';
     const shown = pend ? ord.filter((i) => frac(i) < 0.999) : ord;
+    lit = {}; idx = new Map(); firstI = shown[0] || null; lastI = shown[shown.length - 1] || null;
+    shown.forEach((x, n) => { idx.set(x.key, n); const nx = shown[n + 1]; if (nx && frac(x) >= 0.999 && (frac(nx) >= 0.999 || nx === here)) { lit[x.key + 'd'] = 1; lit[nx.key + 'u'] = 1; } });
     const hi = here ? shown.indexOf(here) : -1;
     const sv = store.uniSaved(U.id), saveBtn = '<button class="ab sv' + (sv ? ' on' : '') + '" data-a="save">' + ic('mark', 24) + '<span>' + (sv ? 'Guardado' : 'Guardar') + '</span></button>';
     topEl.innerHTML = '<div class="un-hero">' + back + '<div class="fs-in"><div class="kk">' + (U.id[0] === 'c' && /^c\d+$/.test(U.id) ? 'Colección' : 'Universo') + '</div><h1 class="un-title">' + esc(U.title) + '</h1><div class="mt">' + esc(mt) + '</div>' + cont + '<div class="acts3">' + modeBtn + pendBtn + saveBtn + '</div></div></div>';
