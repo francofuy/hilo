@@ -5,6 +5,7 @@ import * as api from './api.js';
 import { nextEpisode } from './progress.js';
 import { openSheet } from './sheet.js';
 import { rememberPref } from './platform.js';
+import * as tv from './tv.js';
 import { esc, ic, img, epLabel, toast, $ } from './ui.js';
 
 const MIN = 90e3, MAX = 12 * 3600e3;
@@ -53,9 +54,23 @@ function choose(type, id, title, opts) {
   return sh;
 }
 
+/* ---------- ¿teléfono o TV? (solo si activaste "Mi TV" en Ajustes) ---------- */
+let phoneUntil = 0; // elegido "este teléfono": durante un rato se sigue de largo, sin volver a preguntar
+const openHere = (x) => {
+  if (x.opts && x.opts.length > 1 && !x.chosen) { choose(x.type, x.id, x.title, x.opts); return; }
+  const a = document.createElement('a'); a.href = x.href; a.target = '_blank'; a.rel = 'noopener'; a.dataset.plat = x.type + ':' + x.id; a.dataset.pt = x.title; if (x.pn) a.dataset.pn = x.pn; a.dataset.chosen = '1';
+  a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500);
+};
+const toTv = (x) => {
+  const fin = (o) => { tv.send({ type: x.type, id: x.id, title: x.title, url: o.u || x.href, short: o.s }); note(x.type, x.id, x.title); if (o.n || x.pn) rememberPref(x.type, x.id, o.n || x.pn); };
+  if (x.opts && x.opts.length > 1 && !x.chosen) tv.chooseTv(x, fin); else fin({ u: x.href, s: '', n: x.pn });
+};
+const askWhere = (x) => tv.askDest(x, (dest) => { if (dest === 'tv') toTv(x); else { phoneUntil = Date.now() + 15000; openHere(x); } });
+
 // abre el título en tu plataforma; si hay más de una, pregunta dónde (desde un botón que no es un enlace)
 export function launch(type, id, title, opts) {
   if (!opts || !opts.length) return false;
+  if (tv.on() && Date.now() >= phoneUntil) { askWhere({ type, id: +id, title, href: opts[0].url, pn: opts[0].name, chosen: false, opts: opts.length > 1 ? opts.map((o) => ({ n: o.name, s: o.short, u: o.url })) : null }); return true; }
   if (opts.length > 1) { choose(type, id, title, opts.map((o) => ({ n: o.name, s: o.short, u: o.url }))); return true; }
   const a = document.createElement('a'); a.href = opts[0].url; a.target = '_blank'; a.rel = 'noopener'; a.dataset.plat = type + ':' + id; a.dataset.pt = title; a.dataset.pn = opts[0].name; a.dataset.chosen = '1';
   a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 500);
@@ -66,13 +81,18 @@ export function initBack() {
   document.addEventListener('click', (e) => {
     const a = e.target.closest && e.target.closest('a[data-plat]'); if (!a) return;
     const [type, id] = a.dataset.plat.split(':');
+    if (tv.on() && Date.now() >= phoneUntil) { // con "Mi TV" activado, primero se pregunta dónde
+      let opts = null; try { opts = a.dataset.opts ? JSON.parse(decodeURIComponent(a.dataset.opts)) : null; } catch (err) { /* sin opciones */ }
+      e.preventDefault(); e.stopPropagation();
+      askWhere({ type, id: +id, title: a.dataset.pt || '', href: a.href, pn: a.dataset.pn || '', chosen: !!a.dataset.chosen, opts }); return;
+    }
     // más de una plataforma: primero se elige
     if (a.dataset.opts && !a.dataset.chosen) {
       let opts = null; try { opts = JSON.parse(decodeURIComponent(a.dataset.opts)); } catch (err) { /* se abre el primero */ }
       if (opts && opts.length > 1) { e.preventDefault(); e.stopPropagation(); choose(type, id, a.dataset.pt || '', opts); return; }
     }
     // se anota qué era y cuándo, para preguntar si lo viste al volver
-    note(type, id, a.dataset.pt);
+    note(type, id, a.dataset.pt); phoneUntil = 0;
     if (a.dataset.pn) rememberPref(type, id, a.dataset.pn);
   }, true);
   const check = () => { if (!document.hidden) ask(); };

@@ -38,7 +38,9 @@ const ICON = {
   grip: '<path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" stroke-width="3"/>',
   dots: '<path d="M6 12h.01M12 12h.01M18 12h.01" stroke-width="3"/>',
   minus: '<path d="M5 12h14"/>',
-  lists: '<path d="M4 7h11M4 12h7M4 17h7M17 13v6M14 16h6"/>'
+  lists: '<path d="M4 7h11M4 12h7M4 17h7M17 13v6M14 16h6"/>',
+  phone: '<rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/>',
+  tv: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>'
 };
 export const ic = (n, s, sw) => '<svg class="ic" width="' + (s || 22) + '" height="' + (s || 22) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (sw || 1.8) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[n] + '</svg>';
 

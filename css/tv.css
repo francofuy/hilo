@@ -1,0 +1,16 @@
+/* Ver en la TV: elegir dónde y activarlo en Ajustes */
+.tv-dst{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.tv-dst button{display:grid;justify-items:center;gap:10px;padding:20px 10px 16px;border-radius:20px;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);transition:transform .3s cubic-bezier(.34,1.56,.64,1),background .25s,box-shadow .25s}
+.tv-dst button:active{transform:scale(.96)}
+.tv-dst button b{font-size:14.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tv-dst button[data-dest=tv]{background:color-mix(in srgb,var(--a) 20%,transparent);box-shadow:inset 0 0 0 1.5px var(--a)}
+.tv-sw{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:12px 0;margin-bottom:6px;text-align:left;font-size:15px;font-weight:650}
+.tv-sw i{position:relative;flex:none;width:50px;height:30px;border-radius:99px;background:rgba(255,255,255,.18);transition:background .3s}
+.tv-sw i::after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.4);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+.tv-sw.on i{background:var(--a)}.tv-sw.on i::after{transform:translateX(20px)}
+.tv-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.tv-how{margin-top:14px;font-size:13px;color:var(--fg2)}
+.tv-how summary{cursor:pointer;font-weight:700;color:var(--fg)}
+.tv-how ol{margin:8px 0 6px;padding-left:18px;display:grid;gap:6px}
+.tv-how p{margin:6px 0 0}
+.tv-sw ~ .field{margin-top:14px}

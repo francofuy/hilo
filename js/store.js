@@ -168,6 +168,7 @@ export function unsaveUni(id) {
 /* ---------- respaldo ---------- */
 export function exportJSON() {
   const { key, mkey, ...rest } = S; // las claves nunca salen en el respaldo
+  if (rest.tv) rest.tv = { ...rest.tv, hook: '' }; // el webhook de la TV tampoco
   return JSON.stringify(rest);
 }
 export function importJSON(txt) {
@@ -177,6 +178,9 @@ export function importJSON(txt) {
   if (d.region) S.region = d.region;
   if (Array.isArray(d.log)) S.log = (S.log || []).concat(d.log).slice(-400);
   if (Array.isArray(d.plat)) S.plat = d.plat;
+  ['goal', 'hide', 'pref'].forEach((f) => { if (d[f] && typeof d[f] === 'object') S[f] = { ...d[f], ...(S[f] || {}) }; });
+  if (Array.isArray(d.lists)) { S.lists = S.lists || []; d.lists.forEach((l) => { if (l && l.id && !S.lists.some((x) => x.id === l.id)) S.lists.push(l); }); }
+  if (d.tv && typeof d.tv === 'object' && !S.tv) S.tv = { ...d.tv, hook: '' };
   save();
 }
 export function resetProgress() { S.follow = {}; S.watched = {}; S.last = {}; S.rate = {}; S.off = {}; S.meta = {}; save(); }

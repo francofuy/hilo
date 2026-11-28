@@ -5,10 +5,11 @@ import { PLATS, platName } from './platform.js';
 import * as api from './api.js';
 import * as data from './data.js';
 import * as fun from './fun.js';
+import * as tv from './tv.js';
 import { openSheet } from './sheet.js';
 import { esc, ic, img, toast, $ } from './ui.js';
 
-export const VERSION = '1.11.5';
+export const VERSION = '1.12.0';
 const REGIONS = [['AR', 'Argentina'], ['MX', 'México'], ['CL', 'Chile'], ['CO', 'Colombia'], ['UY', 'Uruguay'], ['PE', 'Perú'], ['ES', 'España'], ['BR', 'Brasil'], ['US', 'Estados Unidos']];
 const regionName = (c) => (REGIONS.find((r) => r[0] === c) || [c, c])[1];
 
@@ -66,6 +67,26 @@ const SH = {
         });
       } };
   },
+  tv(S, re) {
+    const c = tv.cfg();
+    return { html: '<h3>Mi TV</h3><div class="ssub">Con esto activado, al reproducir Hilo te pregunta si lo ves en el teléfono o en tu TV. Solo si elegís la TV manda el pedido.</div>' +
+      '<button class="tv-sw' + (c.on ? ' on' : '') + '" data-act="tvon" role="switch" aria-checked="' + !!c.on + '"><span>Preguntar si lo veo en la TV</span><i></i></button>' +
+      '<div class="field"><label for="tvn">Nombre de la TV</label><input id="tvn" type="text" maxlength="24" autocomplete="off" placeholder="Mi TV" value="' + esc(c.name || '') + '"></div>' +
+      '<div class="field"><label for="tvs">Atajo de iOS</label><input id="tvs" type="text" maxlength="40" autocomplete="off" autocapitalize="off" placeholder="Hilo a la TV" value="' + esc(c.shortcut || '') + '"></div>' +
+      '<div class="field"><label for="tvh">Webhook (opcional)</label><input id="tvh" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://… (reemplaza al Atajo)" value="' + esc(c.hook || '') + '"></div><div class="err" id="tverr" role="alert"></div>' +
+      '<div class="tv-btns"><button class="btn pri" data-act="tvsave">Guardar</button><button class="btn glass" data-act="tvtest">Enviar prueba</button></div>' +
+      '<details class="tv-how"><summary>Cómo armar el Atajo</summary><ol><li>Abrí Atajos y creá uno nuevo con el nombre de arriba.</li><li>Agregá <b>Obtener contenido de URL</b>: poné la dirección de tu puente (por ejemplo, un webhook de Home Assistant), método <b>POST</b> y, como cuerpo, <b>Archivo</b> con la <b>Entrada del atajo</b>.</li><li>Hilo le pasa un texto con el título, la plataforma y el enlace del capítulo. Quien lo reciba lo abre en la TV.</li></ol><p>Solo con un Atajo no se puede abrir nada en una TV LG: se controlan por una conexión que los Atajos no entienden. Hace falta un puente (Home Assistant u otro), o un webhook https.</p></details>',
+      bind(s) {
+        const val = () => ({ name: $('#tvn', s.el).value.trim(), shortcut: $('#tvs', s.el).value.trim(), hook: $('#tvh', s.el).value.trim() });
+        const keep = () => { const v = val(), err = $('#tverr', s.el); if (v.hook && !tv.hookOk(v.hook)) { err.textContent = 'El webhook tiene que empezar con https://'; return false; } err.textContent = ''; Object.assign(c, v); store.save(); return true; };
+        s.el.addEventListener('click', (e) => {
+          const b = e.target.closest('[data-act]'); if (!b) return;
+          if (b.dataset.act === 'tvon') { c.on = !c.on; store.save(); b.classList.toggle('on', !!c.on); b.setAttribute('aria-checked', String(!!c.on)); re(); return; }
+          if (b.dataset.act === 'tvsave') { if (keep()) { toast('Guardado'); s.close(); re(); } return; }
+          if (b.dataset.act === 'tvtest') { if (keep()) tv.testRequest(); }
+        });
+      } };
+  },
   off(S, re) {
     const list = Object.keys(S.off).map((k) => S.meta[k]).filter(Boolean);
     return { html: '<h3>Sin conexión</h3><div class="ssub">' + (list.length ? 'Guardados en este teléfono.' : 'Todavía no guardaste nada. Tocá Descargar en la ficha de una serie o película.') + '</div>' + (list.length ? '<div class="st-opts">' + list.map((m) => '<div class="st-opt"><a href="#/' + m.type + '/' + m.id + '" data-close>' + esc(m.t) + '</a><button data-rm="' + m.type + ':' + m.id + '">Quitar</button></div>').join('') + '</div>' : ''),
@@ -112,7 +133,7 @@ export async function mount(el) {
     const sum = [prog ? prog + ' en curso' : '', done ? done + ' terminadas' : '', fol ? fol + ' en tu lista' : ''].filter(Boolean).join(' · ') || 'Todavía no seguís nada';
     const groups = [
       [['year', 'Tu año en Hilo', Math.round(YS.mins / 60) + ' h']],
-      [['region', 'País', regionName(S.region)], ['key', 'API key de TMDB', '••••' + S.key.slice(-4)], ['plat', 'Mis plataformas', S.plat && S.plat.length ? S.plat.map(platName).join(', ') : 'Todas'], ['mon', 'Enlaces por episodio', S.mkey ? 'Activados' : 'Sin configurar']],
+      [['region', 'País', regionName(S.region)], ['key', 'API key de TMDB', '••••' + S.key.slice(-4)], ['plat', 'Mis plataformas', S.plat && S.plat.length ? S.plat.map(platName).join(', ') : 'Todas'], ['mon', 'Enlaces por episodio', S.mkey ? 'Activados' : 'Sin configurar'], ['tv', 'Mi TV', S.tv && S.tv.on ? 'Activada' : 'Apagada']],
       [['off', 'Sin conexión', off ? off + (off === 1 ? ' guardada' : ' guardadas') : 'Nada guardado'], ['backup', 'Respaldo', '']],
       [...(standalone ? [] : [['install', 'Instalar en tu iPhone', '']]), ['about', 'Acerca de', 'v' + VERSION]],
       [['reset', 'Borrar mi progreso', '', 1]]
